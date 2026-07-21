@@ -1,0 +1,11 @@
+{
+  "domain": "lueftungsempfehlung",
+  "name": "Lüftungsempfehlung",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://example.invalid/lueftungsempfehlung",
+  "issue_tracker": "https://example.invalid/lueftungsempfehlung/issues",
+  "iot_class": "calculated",
+  "requirements": [],
+  "version": "0.1.0"
+}

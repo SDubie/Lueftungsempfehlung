@@ -1,0 +1,48 @@
+{
+  "title": "Lüftungsempfehlung",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Lüftungsempfehlung einrichten",
+        "description": "Wähle die Sensoren für Innen- und Außenklima aus.",
+        "data": {
+          "name": "Name",
+          "indoor_temperature_entity": "Innenraumtemperatur-Sensor",
+          "indoor_humidity_entity": "Innenraum-Feuchtesensor",
+          "outdoor_temperature_entity": "Außentemperatur-Sensor",
+          "outdoor_humidity_entity": "Außenluft-Feuchtesensor",
+          "require_outside_cooler": "Außenluft muss kühler sein",
+          "min_absolute_humidity_delta": "Minimale Differenz der absoluten Feuchte (g/m³)",
+          "update_interval_minutes": "Aktualisierungsintervall in Minuten"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Diese Sensorkombination ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Lüftungsempfehlung anpassen",
+        "data": {
+          "name": "Name",
+          "indoor_temperature_entity": "Innenraumtemperatur-Sensor",
+          "indoor_humidity_entity": "Innenraum-Feuchtesensor",
+          "outdoor_temperature_entity": "Außentemperatur-Sensor",
+          "outdoor_humidity_entity": "Außenluft-Feuchtesensor",
+          "require_outside_cooler": "Außenluft muss kühler sein",
+          "min_absolute_humidity_delta": "Minimale Differenz der absoluten Feuchte (g/m³)",
+          "update_interval_minutes": "Aktualisierungsintervall in Minuten"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ventilation_recommendation": {
+        "name": "Lüftungsempfehlung"
+      }
+    }
+  }
+}

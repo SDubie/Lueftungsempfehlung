@@ -1,0 +1,48 @@
+{
+  "title": "Ventilation Recommendation",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up ventilation recommendation",
+        "description": "Select the sensors for indoor and outdoor climate.",
+        "data": {
+          "name": "Name",
+          "indoor_temperature_entity": "Indoor temperature sensor",
+          "indoor_humidity_entity": "Indoor humidity sensor",
+          "outdoor_temperature_entity": "Outdoor temperature sensor",
+          "outdoor_humidity_entity": "Outdoor humidity sensor",
+          "require_outside_cooler": "Outside air must be cooler",
+          "min_absolute_humidity_delta": "Minimum absolute humidity delta (g/m³)",
+          "update_interval_minutes": "Update interval in minutes"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This sensor combination is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Adjust ventilation recommendation",
+        "data": {
+          "name": "Name",
+          "indoor_temperature_entity": "Indoor temperature sensor",
+          "indoor_humidity_entity": "Indoor humidity sensor",
+          "outdoor_temperature_entity": "Outdoor temperature sensor",
+          "outdoor_humidity_entity": "Outdoor humidity sensor",
+          "require_outside_cooler": "Outside air must be cooler",
+          "min_absolute_humidity_delta": "Minimum absolute humidity delta (g/m³)",
+          "update_interval_minutes": "Update interval in minutes"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ventilation_recommendation": {
+        "name": "Ventilation recommendation"
+      }
+    }
+  }
+}
