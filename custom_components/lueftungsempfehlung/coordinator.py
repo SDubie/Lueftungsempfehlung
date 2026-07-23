@@ -9,18 +9,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
+from homeassistant.util import slugify
 
 from .const import (
-    ATTR_ABSOLUTE_HUMIDITY_DELTA,
-    ATTR_HUMIDITY_RECOMMENDED,
-    ATTR_INDOOR_ABSOLUTE_HUMIDITY,
-    ATTR_INDOOR_DEW_POINT,
-    ATTR_OUTDOOR_ABSOLUTE_HUMIDITY,
-    ATTR_OUTDOOR_DEW_POINT,
-    ATTR_REASON,
-    ATTR_TEMPERATURE_RECOMMENDED,
-    ATTR_WINDOW_OPEN,
     CONF_HUMIDITY_HYSTERESIS,
     CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_INDOOR_TEMPERATURE_ENTITY,
@@ -29,8 +23,11 @@ from .const import (
     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
     CONF_MIN_INDOOR_HUMIDITY,
     CONF_MIN_TEMPERATURE_DELTA,
+    CONF_NOTIFY_DEVICES,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
+    CONF_REMINDER_INTERVAL_MINUTES,
+    CONF_REMINDER_MAX_COUNT,
     CONF_REQUIRE_OUTSIDE_COOLER,
     CONF_TEMPERATURE_HYSTERESIS,
     CONF_UPDATE_INTERVAL_MINUTES,
@@ -42,6 +39,8 @@ from .const import (
     DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
     DEFAULT_MIN_INDOOR_HUMIDITY,
     DEFAULT_MIN_TEMPERATURE_DELTA,
+    DEFAULT_REMINDER_INTERVAL_MINUTES,
+    DEFAULT_REMINDER_MAX_COUNT,
     DEFAULT_REQUIRE_OUTSIDE_COOLER,
     DEFAULT_TEMPERATURE_HYSTERESIS,
     REASON_DRYNESS,
@@ -82,6 +81,9 @@ class VentilationRecommendationCoordinator(
 ):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
+        self._last_notified_recommendation: str | None = None
+        self._last_notification_at = None
+        self._reminder_count = 0
 
         super().__init__(
             hass,
@@ -97,6 +99,116 @@ class VentilationRecommendationCoordinator(
 
     def _get_config_value(self, key: str, default: bool | float | int | str) -> bool | float | int | str:
         return self.entry.options.get(key, self.entry.data.get(key, default))
+
+    def initialize_notification_tracking(self) -> None:
+        if self.data is not None:
+            self._last_notified_recommendation = self.data.recommendation
+            if self.data.recommendation == STATE_JETZT_LUEFTEN:
+                self._last_notification_at = dt_util.utcnow()
+                self._reminder_count = 0
+
+    async def async_send_notification_if_needed(self) -> None:
+        if self.data is None:
+            return
+
+        now = dt_util.utcnow()
+        current_recommendation = self.data.recommendation
+        device_ids = self._get_notify_device_ids()
+
+        if not device_ids:
+            self._last_notified_recommendation = current_recommendation
+            if current_recommendation != STATE_JETZT_LUEFTEN:
+                self._clear_reminder_tracking()
+            return
+
+        if self._last_notified_recommendation != current_recommendation:
+            self._last_notified_recommendation = current_recommendation
+
+            if current_recommendation == STATE_JETZT_LUEFTEN:
+                self._reminder_count = 0
+                await self._async_dispatch_notifications(
+                    title=self._build_notification_title(current_recommendation),
+                    message=self._build_notification_message(),
+                    device_ids=device_ids,
+                )
+                self._last_notification_at = now
+                return
+
+            self._clear_reminder_tracking()
+
+            if current_recommendation == STATE_NICHT_MEHR_LUEFTEN:
+                await self._async_dispatch_notifications(
+                    title=self._build_notification_title(current_recommendation),
+                    message=self._build_notification_message(),
+                    device_ids=device_ids,
+                )
+            return
+
+        if current_recommendation != STATE_JETZT_LUEFTEN:
+            return
+
+        if not self._should_send_reminder(now):
+            return
+
+        await self._async_dispatch_notifications(
+            title=self._build_notification_title(current_recommendation, is_reminder=True),
+            message=self._build_notification_message(is_reminder=True),
+            device_ids=device_ids,
+        )
+        self._last_notification_at = now
+        self._reminder_count += 1
+
+    async def _async_dispatch_notifications(
+        self,
+        *,
+        title: str,
+        message: str,
+        device_ids: list[str],
+    ) -> None:
+        for service_name in self._resolve_notify_services(device_ids):
+            if not self.hass.services.has_service("notify", service_name):
+                _LOGGER.warning(
+                    "Notify service notify.%s for integration %s not found",
+                    service_name,
+                    self.entry.title,
+                )
+                continue
+
+            await self.hass.services.async_call(
+                "notify",
+                service_name,
+                {"title": title, "message": message},
+                blocking=False,
+            )
+
+    def _should_send_reminder(self, now) -> bool:
+        reminder_interval = int(
+            self._get_config_value(
+                CONF_REMINDER_INTERVAL_MINUTES,
+                DEFAULT_REMINDER_INTERVAL_MINUTES,
+            )
+        )
+        reminder_max_count = int(
+            self._get_config_value(
+                CONF_REMINDER_MAX_COUNT,
+                DEFAULT_REMINDER_MAX_COUNT,
+            )
+        )
+
+        if reminder_max_count <= 0 or reminder_interval <= 0:
+            return False
+
+        if self._reminder_count >= reminder_max_count:
+            return False
+
+        if self._last_notification_at is None:
+            return False
+
+        return now - self._last_notification_at >= timedelta(minutes=reminder_interval)
+
+    def _clear_reminder_tracking(self) -> None:
+        self._last_notification_at = None
+        self._reminder_count = 0
 
     async def _async_update_data(self) -> VentilationRecommendationData:
         try:
@@ -279,6 +391,90 @@ class VentilationRecommendationCoordinator(
             raise HomeAssistantError(f"Entity state unavailable: {entity_id}")
 
         return state.state in {"on", "open"}
+
+    def _get_notify_device_ids(self) -> list[str]:
+        raw_value = self._get_config_value(CONF_NOTIFY_DEVICES, [])
+
+        if isinstance(raw_value, str):
+            return [raw_value] if raw_value else []
+
+        if isinstance(raw_value, list):
+            return [device_id for device_id in raw_value if isinstance(device_id, str)]
+
+        return []
+
+    def _resolve_notify_services(self, device_ids: list[str]) -> list[str]:
+        device_registry = dr.async_get(self.hass)
+        services: list[str] = []
+
+        for device_id in device_ids:
+            device = device_registry.async_get(device_id)
+            if device is None:
+                _LOGGER.warning(
+                    "Configured notify device %s for integration %s was not found",
+                    device_id,
+                    self.entry.title,
+                )
+                continue
+
+            device_name = device.name_by_user or device.name
+            if not device_name:
+                _LOGGER.warning(
+                    "Configured notify device %s for integration %s has no usable name",
+                    device_id,
+                    self.entry.title,
+                )
+                continue
+
+            services.append(f"mobile_app_{slugify(device_name)}")
+
+        return services
+
+    def _build_notification_title(self, recommendation: str, is_reminder: bool = False) -> str:
+        name = self.entry.title or "Lüftungsempfehlung"
+
+        if is_reminder:
+            return f"Erinnerung: Lüften empfohlen: {name}"
+
+        if recommendation == STATE_JETZT_LUEFTEN:
+            return f"Lüften empfohlen: {name}"
+
+        return f"Fenster schließen: {name}"
+
+    def _build_notification_message(self, is_reminder: bool = False) -> str:
+        if self.data is None:
+            return self.entry.title or "Lüftungsempfehlung"
+
+        state_text = {
+            STATE_JETZT_LUEFTEN: (
+                "Bitte jetzt lüften. Fenster ist weiterhin geschlossen."
+                if is_reminder
+                else "Bitte jetzt lüften."
+            ),
+            STATE_NICHT_MEHR_LUEFTEN: "Lüften ist nicht mehr nötig. Bitte Fenster schließen.",
+            STATE_WEITER_LUEFTEN: "Weiter lüften.",
+            STATE_ALLES_OK: "Aktuell ist keine Aktion nötig.",
+        }[self.data.recommendation]
+
+        return (
+            f"{state_text} "
+            f"Grund: {self._build_reason_text()}. "
+            f"Innen {self.data.indoor_temperature:.1f} °C / {self.data.indoor_humidity:.0f} %, "
+            f"außen {self.data.outdoor_temperature:.1f} °C / {self.data.outdoor_humidity:.0f} %."
+        )
+
+    def _build_reason_text(self) -> str:
+        if self.data is None:
+            return REASON_UNKNOWN
+
+        return {
+            REASON_TEMPERATURE: "zu warm innen und außen ausreichend kühler",
+            REASON_HUMIDITY: "innen zu feucht und außen trockener",
+            REASON_DRYNESS: "innen zu trocken und außen feuchter",
+            REASON_TEMPERATURE_AND_HUMIDITY: "innen zu warm und zu feucht",
+            REASON_TEMPERATURE_AND_DRYNESS: "innen zu warm und zu trocken",
+            REASON_UNKNOWN: "keine eindeutige Ursache",
+        }[self.data.reason]
 
     @staticmethod
     def _calculate_absolute_humidity(temperature_c: float, humidity_percent: float) -> float:
