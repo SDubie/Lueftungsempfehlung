@@ -11,14 +11,18 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     ATTR_ABSOLUTE_HUMIDITY_DELTA,
+    ATTR_HUMIDITY_RECOMMENDED,
     ATTR_INDOOR_ABSOLUTE_HUMIDITY,
     ATTR_INDOOR_DEW_POINT,
     ATTR_OUTDOOR_ABSOLUTE_HUMIDITY,
     ATTR_OUTDOOR_DEW_POINT,
     ATTR_REASON,
+    ATTR_TEMPERATURE_RECOMMENDED,
+    ATTR_WINDOW_OPEN,
     DEFAULT_NAME,
     DOMAIN,
-    STATE_RECOMMENDED,
+    STATE_JETZT_LUEFTEN,
+    STATE_WEITER_LUEFTEN,
 )
 from .coordinator import VentilationRecommendationCoordinator
 
@@ -63,7 +67,10 @@ class VentilationRecommendationSensor(
 
     @property
     def icon(self) -> str:
-        if self.coordinator.data.recommendation == STATE_RECOMMENDED:
+        if self.coordinator.data.recommendation in {
+            STATE_JETZT_LUEFTEN,
+            STATE_WEITER_LUEFTEN,
+        }:
             return "mdi:window-open-variant"
 
         return "mdi:window-closed-variant"
@@ -82,4 +89,7 @@ class VentilationRecommendationSensor(
             ATTR_ABSOLUTE_HUMIDITY_DELTA: data.absolute_humidity_delta,
             ATTR_INDOOR_DEW_POINT: data.indoor_dew_point,
             ATTR_OUTDOOR_DEW_POINT: data.outdoor_dew_point,
+            ATTR_HUMIDITY_RECOMMENDED: data.humidity_recommended,
+            ATTR_TEMPERATURE_RECOMMENDED: data.temperature_recommended,
+            ATTR_WINDOW_OPEN: data.window_open,
         }
