@@ -11,8 +11,15 @@
           "indoor_humidity_entity": "Innenraum-Feuchtesensor",
           "outdoor_temperature_entity": "Außentemperatur-Sensor",
           "outdoor_humidity_entity": "Außenluft-Feuchtesensor",
+          "window_entity": "Fenster-/Türsensor",
           "require_outside_cooler": "Außenluft muss kühler sein",
           "min_absolute_humidity_delta": "Minimale Differenz der absoluten Feuchte (g/m³)",
+          "max_indoor_humidity": "Maximale Innenluftfeuchtigkeit (%)",
+          "min_indoor_humidity": "Minimale Innenluftfeuchtigkeit (%)",
+          "max_indoor_temperature": "Maximale Innentemperatur (°C)",
+          "min_temperature_delta": "Minimale Temperaturdifferenz (°C)",
+          "humidity_hysteresis": "Hysterese Feuchtigkeit (g/m³)",
+          "temperature_hysteresis": "Hysterese Temperatur (°C)",
           "update_interval_minutes": "Aktualisierungsintervall in Minuten"
         }
       }
@@ -31,8 +38,15 @@
           "indoor_humidity_entity": "Innenraum-Feuchtesensor",
           "outdoor_temperature_entity": "Außentemperatur-Sensor",
           "outdoor_humidity_entity": "Außenluft-Feuchtesensor",
+          "window_entity": "Fenster-/Türsensor",
           "require_outside_cooler": "Außenluft muss kühler sein",
           "min_absolute_humidity_delta": "Minimale Differenz der absoluten Feuchte (g/m³)",
+          "max_indoor_humidity": "Maximale Innenluftfeuchtigkeit (%)",
+          "min_indoor_humidity": "Minimale Innenluftfeuchtigkeit (%)",
+          "max_indoor_temperature": "Maximale Innentemperatur (°C)",
+          "min_temperature_delta": "Minimale Temperaturdifferenz (°C)",
+          "humidity_hysteresis": "Hysterese Feuchtigkeit (g/m³)",
+          "temperature_hysteresis": "Hysterese Temperatur (°C)",
           "update_interval_minutes": "Aktualisierungsintervall in Minuten"
         }
       }

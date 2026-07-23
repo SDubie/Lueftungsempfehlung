@@ -9,17 +9,30 @@ from homeassistant import config_entries
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_HUMIDITY_HYSTERESIS,
     CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_INDOOR_TEMPERATURE_ENTITY,
+    CONF_MAX_INDOOR_HUMIDITY,
+    CONF_MAX_INDOOR_TEMPERATURE,
     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
+    CONF_MIN_INDOOR_HUMIDITY,
+    CONF_MIN_TEMPERATURE_DELTA,
     CONF_NAME,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_REQUIRE_OUTSIDE_COOLER,
+    CONF_TEMPERATURE_HYSTERESIS,
     CONF_UPDATE_INTERVAL_MINUTES,
+    CONF_WINDOW_ENTITY,
+    DEFAULT_HUMIDITY_HYSTERESIS,
     DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
+    DEFAULT_MAX_INDOOR_HUMIDITY,
+    DEFAULT_MAX_INDOOR_TEMPERATURE,
+    DEFAULT_MIN_INDOOR_HUMIDITY,
+    DEFAULT_MIN_TEMPERATURE_DELTA,
     DEFAULT_NAME,
     DEFAULT_REQUIRE_OUTSIDE_COOLER,
+    DEFAULT_TEMPERATURE_HYSTERESIS,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
     DOMAIN,
 )
@@ -67,6 +80,12 @@ def _build_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
                 selector.EntitySelectorConfig(domain="sensor")
             ),
             vol.Optional(
+                CONF_WINDOW_ENTITY,
+                default=values.get(CONF_WINDOW_ENTITY, ""),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="binary_sensor")
+            ),
+            vol.Optional(
                 CONF_REQUIRE_OUTSIDE_COOLER,
                 default=values.get(
                     CONF_REQUIRE_OUTSIDE_COOLER,
@@ -81,6 +100,60 @@ def _build_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
                 ),
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(min=0, max=10, step=0.1)
+            ),
+            vol.Optional(
+                CONF_MAX_INDOOR_HUMIDITY,
+                default=values.get(
+                    CONF_MAX_INDOOR_HUMIDITY,
+                    DEFAULT_MAX_INDOOR_HUMIDITY,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=30, max=90, step=1)
+            ),
+            vol.Optional(
+                CONF_MIN_INDOOR_HUMIDITY,
+                default=values.get(
+                    CONF_MIN_INDOOR_HUMIDITY,
+                    DEFAULT_MIN_INDOOR_HUMIDITY,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=0, max=60, step=1)
+            ),
+            vol.Optional(
+                CONF_MAX_INDOOR_TEMPERATURE,
+                default=values.get(
+                    CONF_MAX_INDOOR_TEMPERATURE,
+                    DEFAULT_MAX_INDOOR_TEMPERATURE,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=10, max=35, step=0.5)
+            ),
+            vol.Optional(
+                CONF_MIN_TEMPERATURE_DELTA,
+                default=values.get(
+                    CONF_MIN_TEMPERATURE_DELTA,
+                    DEFAULT_MIN_TEMPERATURE_DELTA,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=0, max=15, step=0.5)
+            ),
+            vol.Optional(
+                CONF_HUMIDITY_HYSTERESIS,
+                default=values.get(
+                    CONF_HUMIDITY_HYSTERESIS,
+                    DEFAULT_HUMIDITY_HYSTERESIS,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=0, max=5, step=0.1)
+            ),
+            vol.Optional(
+                CONF_TEMPERATURE_HYSTERESIS,
+                default=values.get(
+                    CONF_TEMPERATURE_HYSTERESIS,
+                    DEFAULT_TEMPERATURE_HYSTERESIS,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=0, max=5, step=0.1)
             ),
             vol.Optional(
                 CONF_UPDATE_INTERVAL_MINUTES,

@@ -11,8 +11,15 @@
           "indoor_humidity_entity": "Indoor humidity sensor",
           "outdoor_temperature_entity": "Outdoor temperature sensor",
           "outdoor_humidity_entity": "Outdoor humidity sensor",
+          "window_entity": "Window/door sensor",
           "require_outside_cooler": "Outside air must be cooler",
           "min_absolute_humidity_delta": "Minimum absolute humidity delta (g/m³)",
+          "max_indoor_humidity": "Maximum indoor humidity (%)",
+          "min_indoor_humidity": "Minimum indoor humidity (%)",
+          "max_indoor_temperature": "Maximum indoor temperature (°C)",
+          "min_temperature_delta": "Minimum temperature delta (°C)",
+          "humidity_hysteresis": "Humidity hysteresis (g/m³)",
+          "temperature_hysteresis": "Temperature hysteresis (°C)",
           "update_interval_minutes": "Update interval in minutes"
         }
       }
@@ -31,8 +38,15 @@
           "indoor_humidity_entity": "Indoor humidity sensor",
           "outdoor_temperature_entity": "Outdoor temperature sensor",
           "outdoor_humidity_entity": "Outdoor humidity sensor",
+          "window_entity": "Window/door sensor",
           "require_outside_cooler": "Outside air must be cooler",
           "min_absolute_humidity_delta": "Minimum absolute humidity delta (g/m³)",
+          "max_indoor_humidity": "Maximum indoor humidity (%)",
+          "min_indoor_humidity": "Minimum indoor humidity (%)",
+          "max_indoor_temperature": "Maximum indoor temperature (°C)",
+          "min_temperature_delta": "Minimum temperature delta (°C)",
+          "humidity_hysteresis": "Humidity hysteresis (g/m³)",
+          "temperature_hysteresis": "Temperature hysteresis (°C)",
           "update_interval_minutes": "Update interval in minutes"
         }
       }

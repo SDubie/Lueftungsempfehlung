@@ -10,17 +10,30 @@ from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
+    CONF_HUMIDITY_HYSTERESIS,
     CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_INDOOR_TEMPERATURE_ENTITY,
+    CONF_MAX_INDOOR_HUMIDITY,
+    CONF_MAX_INDOOR_TEMPERATURE,
     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
+    CONF_MIN_INDOOR_HUMIDITY,
+    CONF_MIN_TEMPERATURE_DELTA,
     CONF_NAME,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_REQUIRE_OUTSIDE_COOLER,
+    CONF_TEMPERATURE_HYSTERESIS,
     CONF_UPDATE_INTERVAL_MINUTES,
+    CONF_WINDOW_ENTITY,
+    DEFAULT_HUMIDITY_HYSTERESIS,
     DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
+    DEFAULT_MAX_INDOOR_HUMIDITY,
+    DEFAULT_MAX_INDOOR_TEMPERATURE,
+    DEFAULT_MIN_INDOOR_HUMIDITY,
+    DEFAULT_MIN_TEMPERATURE_DELTA,
     DEFAULT_NAME,
     DEFAULT_REQUIRE_OUTSIDE_COOLER,
+    DEFAULT_TEMPERATURE_HYSTERESIS,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
     DOMAIN,
     PLATFORMS,
@@ -36,6 +49,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Required(CONF_INDOOR_HUMIDITY_ENTITY): cv.entity_id,
                 vol.Required(CONF_OUTDOOR_TEMPERATURE_ENTITY): cv.entity_id,
                 vol.Required(CONF_OUTDOOR_HUMIDITY_ENTITY): cv.entity_id,
+                vol.Optional(CONF_WINDOW_ENTITY): cv.entity_id,
                 vol.Optional(
                     CONF_REQUIRE_OUTSIDE_COOLER,
                     default=DEFAULT_REQUIRE_OUTSIDE_COOLER,
@@ -43,6 +57,30 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(
                     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
                     default=DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_MAX_INDOOR_HUMIDITY,
+                    default=DEFAULT_MAX_INDOOR_HUMIDITY,
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_MIN_INDOOR_HUMIDITY,
+                    default=DEFAULT_MIN_INDOOR_HUMIDITY,
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_MAX_INDOOR_TEMPERATURE,
+                    default=DEFAULT_MAX_INDOOR_TEMPERATURE,
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_MIN_TEMPERATURE_DELTA,
+                    default=DEFAULT_MIN_TEMPERATURE_DELTA,
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_HUMIDITY_HYSTERESIS,
+                    default=DEFAULT_HUMIDITY_HYSTERESIS,
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_TEMPERATURE_HYSTERESIS,
+                    default=DEFAULT_TEMPERATURE_HYSTERESIS,
                 ): vol.Coerce(float),
                 vol.Optional(
                     CONF_UPDATE_INTERVAL_MINUTES,
