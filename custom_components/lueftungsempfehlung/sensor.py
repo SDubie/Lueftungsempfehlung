@@ -25,6 +25,12 @@ from .const import (
     STATE_NICHT_MEHR_LUEFTEN,
     STATE_WEITER_LUEFTEN,
     STATE_ALLES_OK,
+    REASON_TEMPERATURE,
+    REASON_HUMIDITY,
+    REASON_DRYNESS,
+    REASON_TEMPERATURE_AND_HUMIDITY,
+    REASON_TEMPERATURE_AND_DRYNESS,
+    REASON_UNKNOWN,
 )
 from .coordinator import VentilationRecommendationCoordinator
 
@@ -34,6 +40,15 @@ STATE_LABELS: dict[str, str] = {
     STATE_WEITER_LUEFTEN: "Weiter lüften",
     STATE_NICHT_MEHR_LUEFTEN: "Nicht mehr lüften",
     STATE_ALLES_OK: "Alles ok",
+}
+
+REASON_LABELS: dict[str, str] = {
+    REASON_TEMPERATURE: "Zu warm innen, außen ausreichend kühler",
+    REASON_HUMIDITY: "Innen zu feucht, außen trockener",
+    REASON_DRYNESS: "Innen zu trocken, außen feuchter",
+    REASON_TEMPERATURE_AND_HUMIDITY: "Zu warm und zu feucht",
+    REASON_TEMPERATURE_AND_DRYNESS: "Zu warm und zu trocken",
+    REASON_UNKNOWN: "Kein eindeutiger Lüftungsgrund",
 }
 
 SENSOR_DESCRIPTION = SensorEntityDescription(
@@ -90,7 +105,8 @@ class VentilationRecommendationSensor(
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self.coordinator.data
         return {
-            ATTR_REASON: data.reason,
+            ATTR_REASON: REASON_LABELS.get(data.reason, data.reason),
+            "reason_code": data.reason,
             "status_code": data.recommendation,
             "indoor_temperature": data.indoor_temperature,
             "indoor_humidity": data.indoor_humidity,
