@@ -22,9 +22,19 @@ from .const import (
     DEFAULT_NAME,
     DOMAIN,
     STATE_JETZT_LUEFTEN,
+    STATE_NICHT_MEHR_LUEFTEN,
     STATE_WEITER_LUEFTEN,
+    STATE_ALLES_OK,
 )
 from .coordinator import VentilationRecommendationCoordinator
+
+
+STATE_LABELS: dict[str, str] = {
+    STATE_JETZT_LUEFTEN: "Jetzt lüften",
+    STATE_WEITER_LUEFTEN: "Weiter lüften",
+    STATE_NICHT_MEHR_LUEFTEN: "Nicht mehr lüften",
+    STATE_ALLES_OK: "Alles ok",
+}
 
 SENSOR_DESCRIPTION = SensorEntityDescription(
     key="ventilation_recommendation",
@@ -63,7 +73,8 @@ class VentilationRecommendationSensor(
 
     @property
     def native_value(self) -> str | None:
-        return self.coordinator.data.recommendation
+        recommendation = self.coordinator.data.recommendation
+        return STATE_LABELS.get(recommendation, recommendation)
 
     @property
     def icon(self) -> str:
@@ -80,6 +91,7 @@ class VentilationRecommendationSensor(
         data = self.coordinator.data
         return {
             ATTR_REASON: data.reason,
+            "status_code": data.recommendation,
             "indoor_temperature": data.indoor_temperature,
             "indoor_humidity": data.indoor_humidity,
             "outdoor_temperature": data.outdoor_temperature,
