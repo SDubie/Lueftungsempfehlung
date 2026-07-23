@@ -18,8 +18,11 @@ from .const import (
     CONF_MIN_INDOOR_HUMIDITY,
     CONF_MIN_TEMPERATURE_DELTA,
     CONF_NAME,
+    CONF_NOTIFY_DEVICES,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
+    CONF_REMINDER_INTERVAL_MINUTES,
+    CONF_REMINDER_MAX_COUNT,
     CONF_REQUIRE_OUTSIDE_COOLER,
     CONF_TEMPERATURE_HYSTERESIS,
     CONF_UPDATE_INTERVAL_MINUTES,
@@ -31,6 +34,8 @@ from .const import (
     DEFAULT_MIN_INDOOR_HUMIDITY,
     DEFAULT_MIN_TEMPERATURE_DELTA,
     DEFAULT_NAME,
+    DEFAULT_REMINDER_INTERVAL_MINUTES,
+    DEFAULT_REMINDER_MAX_COUNT,
     DEFAULT_REQUIRE_OUTSIDE_COOLER,
     DEFAULT_TEMPERATURE_HYSTERESIS,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
@@ -84,6 +89,33 @@ def _build_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
                 default=values.get(CONF_WINDOW_ENTITY, ""),
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="binary_sensor")
+            ),
+            vol.Optional(
+                CONF_NOTIFY_DEVICES,
+                default=values.get(CONF_NOTIFY_DEVICES, []),
+            ): selector.DeviceSelector(
+                selector.DeviceSelectorConfig(
+                    integration="mobile_app",
+                    multiple=True,
+                )
+            ),
+            vol.Optional(
+                CONF_REMINDER_INTERVAL_MINUTES,
+                default=values.get(
+                    CONF_REMINDER_INTERVAL_MINUTES,
+                    DEFAULT_REMINDER_INTERVAL_MINUTES,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=1, max=1440, step=1)
+            ),
+            vol.Optional(
+                CONF_REMINDER_MAX_COUNT,
+                default=values.get(
+                    CONF_REMINDER_MAX_COUNT,
+                    DEFAULT_REMINDER_MAX_COUNT,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=0, max=100, step=1)
             ),
             vol.Optional(
                 CONF_REQUIRE_OUTSIDE_COOLER,

@@ -13,6 +13,8 @@ DEFAULT_HUMIDITY_HYSTERESIS = 0.3
 DEFAULT_TEMPERATURE_HYSTERESIS = 0.5
 DEFAULT_REQUIRE_OUTSIDE_COOLER = True
 DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA = 1.0
+DEFAULT_REMINDER_INTERVAL_MINUTES = 60
+DEFAULT_REMINDER_MAX_COUNT = 3
 DEFAULT_UPDATE_INTERVAL_MINUTES = 5
 
 CONF_NAME = "name"
@@ -21,6 +23,7 @@ CONF_INDOOR_HUMIDITY_ENTITY = "indoor_humidity_entity"
 CONF_OUTDOOR_TEMPERATURE_ENTITY = "outdoor_temperature_entity"
 CONF_OUTDOOR_HUMIDITY_ENTITY = "outdoor_humidity_entity"
 CONF_WINDOW_ENTITY = "window_entity"
+CONF_NOTIFY_DEVICES = "notify_devices"
 CONF_MAX_INDOOR_HUMIDITY = "max_indoor_humidity"
 CONF_MIN_INDOOR_HUMIDITY = "min_indoor_humidity"
 CONF_MAX_INDOOR_TEMPERATURE = "max_indoor_temperature"
@@ -29,6 +32,8 @@ CONF_HUMIDITY_HYSTERESIS = "humidity_hysteresis"
 CONF_TEMPERATURE_HYSTERESIS = "temperature_hysteresis"
 CONF_REQUIRE_OUTSIDE_COOLER = "require_outside_cooler"
 CONF_MIN_ABSOLUTE_HUMIDITY_DELTA = "min_absolute_humidity_delta"
+CONF_REMINDER_INTERVAL_MINUTES = "reminder_interval_minutes"
+CONF_REMINDER_MAX_COUNT = "reminder_max_count"
 CONF_UPDATE_INTERVAL_MINUTES = "update_interval_minutes"
 
 ATTR_INDOOR_ABSOLUTE_HUMIDITY = "indoor_absolute_humidity"

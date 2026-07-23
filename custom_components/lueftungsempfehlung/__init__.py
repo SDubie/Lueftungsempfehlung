@@ -4,10 +4,10 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.typing import ConfigType
 import homeassistant.helpers.config_validation as cv
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CONF_HUMIDITY_HYSTERESIS,
@@ -19,8 +19,11 @@ from .const import (
     CONF_MIN_INDOOR_HUMIDITY,
     CONF_MIN_TEMPERATURE_DELTA,
     CONF_NAME,
+    CONF_NOTIFY_DEVICES,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
+    CONF_REMINDER_INTERVAL_MINUTES,
+    CONF_REMINDER_MAX_COUNT,
     CONF_REQUIRE_OUTSIDE_COOLER,
     CONF_TEMPERATURE_HYSTERESIS,
     CONF_UPDATE_INTERVAL_MINUTES,
@@ -32,6 +35,8 @@ from .const import (
     DEFAULT_MIN_INDOOR_HUMIDITY,
     DEFAULT_MIN_TEMPERATURE_DELTA,
     DEFAULT_NAME,
+    DEFAULT_REMINDER_INTERVAL_MINUTES,
+    DEFAULT_REMINDER_MAX_COUNT,
     DEFAULT_REQUIRE_OUTSIDE_COOLER,
     DEFAULT_TEMPERATURE_HYSTERESIS,
     DEFAULT_UPDATE_INTERVAL_MINUTES,
@@ -50,6 +55,17 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Required(CONF_OUTDOOR_TEMPERATURE_ENTITY): cv.entity_id,
                 vol.Required(CONF_OUTDOOR_HUMIDITY_ENTITY): cv.entity_id,
                 vol.Optional(CONF_WINDOW_ENTITY): cv.entity_id,
+                vol.Optional(CONF_NOTIFY_DEVICES, default=[]): vol.All(
+                    cv.ensure_list, [cv.string]
+                ),
+                vol.Optional(
+                    CONF_REMINDER_INTERVAL_MINUTES,
+                    default=DEFAULT_REMINDER_INTERVAL_MINUTES,
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=1440)),
+                vol.Optional(
+                    CONF_REMINDER_MAX_COUNT,
+                    default=DEFAULT_REMINDER_MAX_COUNT,
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
                 vol.Optional(
                     CONF_REQUIRE_OUTSIDE_COOLER,
                     default=DEFAULT_REQUIRE_OUTSIDE_COOLER,
@@ -109,9 +125,16 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = VentilationRecommendationCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
+    coordinator.initialize_notification_tracking()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    @callback
+    def _handle_coordinator_update() -> None:
+        hass.async_create_task(coordinator.async_send_notification_if_needed())
+
+    entry.async_on_unload(coordinator.async_add_listener(_handle_coordinator_update))
 
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True
