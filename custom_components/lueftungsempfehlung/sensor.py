@@ -21,13 +21,15 @@ from .const import (
     ATTR_WINDOW_OPEN,
     DEFAULT_NAME,
     DOMAIN,
-    STATE_JETZT_LUEFTEN,
-    STATE_NICHT_MEHR_LUEFTEN,
-    STATE_WEITER_LUEFTEN,
-    STATE_ALLES_OK,
+    STATE_FENSTER_WIEDER_SCHLIESSEN,
+    STATE_LUEFTEN_EMPFOHLEN,
+    STATE_LUEFTEN_NICHT_EMPFOHLEN,
+    STATE_LUEFTEN_NICHT_NOETIG,
     REASON_TEMPERATURE,
     REASON_HUMIDITY,
     REASON_DRYNESS,
+    REASON_INDOOR_TOO_COLD,
+    REASON_OUTDOOR_WARMER_AND_MORE_HUMID,
     REASON_TEMPERATURE_AND_HUMIDITY,
     REASON_TEMPERATURE_AND_DRYNESS,
     REASON_UNKNOWN,
@@ -36,16 +38,18 @@ from .coordinator import VentilationRecommendationCoordinator
 
 
 STATE_LABELS: dict[str, str] = {
-    STATE_JETZT_LUEFTEN: "Jetzt lüften",
-    STATE_WEITER_LUEFTEN: "Weiter lüften",
-    STATE_NICHT_MEHR_LUEFTEN: "Nicht mehr lüften",
-    STATE_ALLES_OK: "Alles ok",
+    STATE_LUEFTEN_NICHT_NOETIG: "Lüften nicht nötig",
+    STATE_LUEFTEN_EMPFOHLEN: "Lüften empfohlen",
+    STATE_LUEFTEN_NICHT_EMPFOHLEN: "Lüften nicht empfohlen",
+    STATE_FENSTER_WIEDER_SCHLIESSEN: "Fenster wieder schließen",
 }
 
 REASON_LABELS: dict[str, str] = {
     REASON_TEMPERATURE: "Zu warm innen, außen ausreichend kühler",
     REASON_HUMIDITY: "Innen zu feucht, außen trockener",
     REASON_DRYNESS: "Innen zu trocken, außen feuchter",
+    REASON_INDOOR_TOO_COLD: "Innen bereits zu kalt für weiteres Lüften",
+    REASON_OUTDOOR_WARMER_AND_MORE_HUMID: "Außen wärmer und feuchter als innen",
     REASON_TEMPERATURE_AND_HUMIDITY: "Zu warm und zu feucht",
     REASON_TEMPERATURE_AND_DRYNESS: "Zu warm und zu trocken",
     REASON_UNKNOWN: "Kein eindeutiger Lüftungsgrund",
@@ -93,10 +97,7 @@ class VentilationRecommendationSensor(
 
     @property
     def icon(self) -> str:
-        if self.coordinator.data.recommendation in {
-            STATE_JETZT_LUEFTEN,
-            STATE_WEITER_LUEFTEN,
-        }:
+        if self.coordinator.data.recommendation == STATE_LUEFTEN_EMPFOHLEN:
             return "mdi:window-open-variant"
 
         return "mdi:window-closed-variant"

@@ -14,6 +14,7 @@ from .const import (
     CONF_INDOOR_TEMPERATURE_ENTITY,
     CONF_MAX_INDOOR_HUMIDITY,
     CONF_MAX_INDOOR_TEMPERATURE,
+    CONF_MIN_INDOOR_TEMPERATURE,
     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
     CONF_MIN_INDOOR_HUMIDITY,
     CONF_MIN_TEMPERATURE_DELTA,
@@ -31,6 +32,7 @@ from .const import (
     DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
     DEFAULT_MAX_INDOOR_HUMIDITY,
     DEFAULT_MAX_INDOOR_TEMPERATURE,
+    DEFAULT_MIN_INDOOR_TEMPERATURE,
     DEFAULT_MIN_INDOOR_HUMIDITY,
     DEFAULT_MIN_TEMPERATURE_DELTA,
     DEFAULT_NAME,
@@ -159,6 +161,15 @@ def _build_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
                 ),
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(min=10, max=35, step=0.5)
+            ),
+            vol.Optional(
+                CONF_MIN_INDOOR_TEMPERATURE,
+                default=values.get(
+                    CONF_MIN_INDOOR_TEMPERATURE,
+                    DEFAULT_MIN_INDOOR_TEMPERATURE,
+                ),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(min=5, max=25, step=0.5)
             ),
             vol.Optional(
                 CONF_MIN_TEMPERATURE_DELTA,

@@ -20,6 +20,7 @@ from .const import (
     CONF_INDOOR_TEMPERATURE_ENTITY,
     CONF_MAX_INDOOR_HUMIDITY,
     CONF_MAX_INDOOR_TEMPERATURE,
+    CONF_MIN_INDOOR_TEMPERATURE,
     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
     CONF_MIN_INDOOR_HUMIDITY,
     CONF_MIN_TEMPERATURE_DELTA,
@@ -35,6 +36,7 @@ from .const import (
     DEFAULT_HUMIDITY_HYSTERESIS,
     DEFAULT_MAX_INDOOR_HUMIDITY,
     DEFAULT_MAX_INDOOR_TEMPERATURE,
+    DEFAULT_MIN_INDOOR_TEMPERATURE,
     DOMAIN,
     DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
     DEFAULT_MIN_INDOOR_HUMIDITY,
@@ -45,14 +47,16 @@ from .const import (
     DEFAULT_TEMPERATURE_HYSTERESIS,
     REASON_DRYNESS,
     REASON_HUMIDITY,
+    REASON_INDOOR_TOO_COLD,
+    REASON_OUTDOOR_WARMER_AND_MORE_HUMID,
     REASON_TEMPERATURE,
     REASON_TEMPERATURE_AND_DRYNESS,
     REASON_TEMPERATURE_AND_HUMIDITY,
     REASON_UNKNOWN,
-    STATE_ALLES_OK,
-    STATE_JETZT_LUEFTEN,
-    STATE_NICHT_MEHR_LUEFTEN,
-    STATE_WEITER_LUEFTEN,
+    STATE_FENSTER_WIEDER_SCHLIESSEN,
+    STATE_LUEFTEN_EMPFOHLEN,
+    STATE_LUEFTEN_NICHT_EMPFOHLEN,
+    STATE_LUEFTEN_NICHT_NOETIG,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -103,7 +107,7 @@ class VentilationRecommendationCoordinator(
     def initialize_notification_tracking(self) -> None:
         if self.data is not None:
             self._last_notified_recommendation = self.data.recommendation
-            if self.data.recommendation == STATE_JETZT_LUEFTEN:
+            if self.data.recommendation == STATE_LUEFTEN_EMPFOHLEN:
                 self._last_notification_at = dt_util.utcnow()
                 self._reminder_count = 0
 
@@ -117,14 +121,14 @@ class VentilationRecommendationCoordinator(
 
         if not device_ids:
             self._last_notified_recommendation = current_recommendation
-            if current_recommendation != STATE_JETZT_LUEFTEN:
+            if current_recommendation != STATE_LUEFTEN_EMPFOHLEN:
                 self._clear_reminder_tracking()
             return
 
         if self._last_notified_recommendation != current_recommendation:
             self._last_notified_recommendation = current_recommendation
 
-            if current_recommendation == STATE_JETZT_LUEFTEN:
+            if current_recommendation == STATE_LUEFTEN_EMPFOHLEN:
                 self._reminder_count = 0
                 await self._async_dispatch_notifications(
                     title=self._build_notification_title(current_recommendation),
@@ -136,7 +140,7 @@ class VentilationRecommendationCoordinator(
 
             self._clear_reminder_tracking()
 
-            if current_recommendation == STATE_NICHT_MEHR_LUEFTEN:
+            if current_recommendation == STATE_FENSTER_WIEDER_SCHLIESSEN:
                 await self._async_dispatch_notifications(
                     title=self._build_notification_title(current_recommendation),
                     message=self._build_notification_message(),
@@ -144,7 +148,7 @@ class VentilationRecommendationCoordinator(
                 )
             return
 
-        if current_recommendation != STATE_JETZT_LUEFTEN:
+        if current_recommendation != STATE_LUEFTEN_EMPFOHLEN:
             return
 
         if not self._should_send_reminder(now):
@@ -267,6 +271,12 @@ class VentilationRecommendationCoordinator(
                 DEFAULT_MAX_INDOOR_TEMPERATURE,
             )
         )
+        min_indoor_temperature = float(
+            self._get_config_value(
+                CONF_MIN_INDOOR_TEMPERATURE,
+                DEFAULT_MIN_INDOOR_TEMPERATURE,
+            )
+        )
         min_temperature_delta = float(
             self._get_config_value(
                 CONF_MIN_TEMPERATURE_DELTA,
@@ -292,10 +302,7 @@ class VentilationRecommendationCoordinator(
             )
         )
 
-        previous_active = self.data is not None and self.data.recommendation in {
-            STATE_JETZT_LUEFTEN,
-            STATE_WEITER_LUEFTEN,
-        }
+        previous_active = self.data is not None and self.data.recommendation == STATE_LUEFTEN_EMPFOHLEN
 
         humidity_delta_threshold = min_delta - humidity_hysteresis if previous_active else min_delta
         temperature_delta_threshold = (
@@ -319,6 +326,15 @@ class VentilationRecommendationCoordinator(
 
         temp_diff = indoor_temperature - outdoor_temperature
         outside_cooler = outdoor_temperature < indoor_temperature
+        outside_warmer = outdoor_temperature > indoor_temperature
+        outside_more_humid = outdoor_humidity > indoor_humidity
+        outdoor_warmer_and_more_humid = outside_warmer and outside_more_humid
+        indoor_too_cold_for_more_cooling = (
+            indoor_temperature <= min_indoor_temperature and outside_cooler
+        )
+        ventilation_not_recommended = (
+            outdoor_warmer_and_more_humid or indoor_too_cold_for_more_cooling
+        )
         temperature_recommended = (
             indoor_temperature >= max_indoor_temperature
             and temp_diff >= temperature_delta_threshold
@@ -340,10 +356,25 @@ class VentilationRecommendationCoordinator(
 
         should_ventilate = humidity_recommended or temperature_recommended
 
-        if should_ventilate:
-            recommendation = STATE_WEITER_LUEFTEN if window_open else STATE_JETZT_LUEFTEN
+        if ventilation_not_recommended:
+            recommendation = (
+                STATE_FENSTER_WIEDER_SCHLIESSEN
+                if window_open
+                else STATE_LUEFTEN_NICHT_EMPFOHLEN
+            )
+            reason = (
+                REASON_OUTDOOR_WARMER_AND_MORE_HUMID
+                if outdoor_warmer_and_more_humid
+                else REASON_INDOOR_TOO_COLD
+            )
+        elif should_ventilate:
+            recommendation = STATE_LUEFTEN_EMPFOHLEN
         else:
-            recommendation = STATE_NICHT_MEHR_LUEFTEN if window_open else STATE_ALLES_OK
+            recommendation = (
+                STATE_FENSTER_WIEDER_SCHLIESSEN
+                if window_open
+                else STATE_LUEFTEN_NICHT_NOETIG
+            )
 
         return VentilationRecommendationData(
             recommendation=recommendation,
@@ -436,24 +467,28 @@ class VentilationRecommendationCoordinator(
         if is_reminder:
             return f"Erinnerung: Lüften empfohlen: {name}"
 
-        if recommendation == STATE_JETZT_LUEFTEN:
+        if recommendation == STATE_LUEFTEN_EMPFOHLEN:
             return f"Lüften empfohlen: {name}"
+        if recommendation == STATE_FENSTER_WIEDER_SCHLIESSEN:
+            return f"Fenster wieder schließen: {name}"
+        if recommendation == STATE_LUEFTEN_NICHT_EMPFOHLEN:
+            return f"Lüften nicht empfohlen: {name}"
 
-        return f"Fenster schließen: {name}"
+        return f"Lüftungsempfehlung: {name}"
 
     def _build_notification_message(self, is_reminder: bool = False) -> str:
         if self.data is None:
             return self.entry.title or "Lüftungsempfehlung"
 
         state_text = {
-            STATE_JETZT_LUEFTEN: (
+            STATE_LUEFTEN_EMPFOHLEN: (
                 "Bitte jetzt lüften. Fenster ist weiterhin geschlossen."
                 if is_reminder
                 else "Bitte jetzt lüften."
             ),
-            STATE_NICHT_MEHR_LUEFTEN: "Lüften ist nicht mehr nötig. Bitte Fenster schließen.",
-            STATE_WEITER_LUEFTEN: "Weiter lüften.",
-            STATE_ALLES_OK: "Aktuell ist keine Aktion nötig.",
+            STATE_FENSTER_WIEDER_SCHLIESSEN: "Bitte Fenster wieder schließen.",
+            STATE_LUEFTEN_NICHT_EMPFOHLEN: "Lüften ist aktuell nicht empfohlen.",
+            STATE_LUEFTEN_NICHT_NOETIG: "Lüften ist nicht nötig.",
         }[self.data.recommendation]
 
         return (
@@ -471,6 +506,8 @@ class VentilationRecommendationCoordinator(
             REASON_TEMPERATURE: "zu warm innen und außen ausreichend kühler",
             REASON_HUMIDITY: "innen zu feucht und außen trockener",
             REASON_DRYNESS: "innen zu trocken und außen feuchter",
+            REASON_INDOOR_TOO_COLD: "innen bereits zu kalt für weiteres Lüften",
+            REASON_OUTDOOR_WARMER_AND_MORE_HUMID: "außen wärmer und feuchter als innen",
             REASON_TEMPERATURE_AND_HUMIDITY: "innen zu warm und zu feucht",
             REASON_TEMPERATURE_AND_DRYNESS: "innen zu warm und zu trocken",
             REASON_UNKNOWN: "keine eindeutige Ursache",
