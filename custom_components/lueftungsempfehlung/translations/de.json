@@ -18,13 +18,17 @@
           "require_outside_cooler": "Außenluft muss kühler sein",
           "min_absolute_humidity_delta": "Minimale Differenz der absoluten Feuchte (g/m³)",
           "max_indoor_humidity": "Maximale Innenluftfeuchtigkeit (%)",
+          "critical_indoor_humidity": "Kritische Innenluftfeuchtigkeit (%)",
           "min_indoor_humidity": "Minimale Innenluftfeuchtigkeit (%)",
           "max_indoor_temperature": "Maximale Innentemperatur (°C)",
           "min_indoor_temperature": "Minimale Innentemperatur (°C)",
+          "max_indoor_dew_point_spread": "Maximaler Abstand Temperatur zu Taupunkt innen (°C)",
+          "humidity_spike_threshold": "Schwelle für schnellen Feuchteanstieg (%)",
           "min_temperature_delta": "Minimale Temperaturdifferenz (°C)",
           "humidity_hysteresis": "Hysterese Feuchtigkeit (g/m³)",
           "temperature_hysteresis": "Hysterese Temperatur (°C)",
-          "update_interval_minutes": "Aktualisierungsintervall in Minuten"
+          "update_interval_minutes": "Aktualisierungsintervall in Minuten",
+          "min_structure_protection_ventilation_minutes": "Mindestlüftungsdauer bei Strukturschutz (Minuten)"
         }
       }
     },
@@ -49,13 +53,17 @@
           "require_outside_cooler": "Außenluft muss kühler sein",
           "min_absolute_humidity_delta": "Minimale Differenz der absoluten Feuchte (g/m³)",
           "max_indoor_humidity": "Maximale Innenluftfeuchtigkeit (%)",
+          "critical_indoor_humidity": "Kritische Innenluftfeuchtigkeit (%)",
           "min_indoor_humidity": "Minimale Innenluftfeuchtigkeit (%)",
           "max_indoor_temperature": "Maximale Innentemperatur (°C)",
           "min_indoor_temperature": "Minimale Innentemperatur (°C)",
+          "max_indoor_dew_point_spread": "Maximaler Abstand Temperatur zu Taupunkt innen (°C)",
+          "humidity_spike_threshold": "Schwelle für schnellen Feuchteanstieg (%)",
           "min_temperature_delta": "Minimale Temperaturdifferenz (°C)",
           "humidity_hysteresis": "Hysterese Feuchtigkeit (g/m³)",
           "temperature_hysteresis": "Hysterese Temperatur (°C)",
-          "update_interval_minutes": "Aktualisierungsintervall in Minuten"
+          "update_interval_minutes": "Aktualisierungsintervall in Minuten",
+          "min_structure_protection_ventilation_minutes": "Mindestlüftungsdauer bei Strukturschutz (Minuten)"
         }
       }
     }

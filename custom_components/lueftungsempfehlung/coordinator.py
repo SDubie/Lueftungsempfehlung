@@ -15,11 +15,15 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .const import (
+    CONF_CRITICAL_INDOOR_HUMIDITY,
     CONF_HUMIDITY_HYSTERESIS,
+    CONF_HUMIDITY_SPIKE_THRESHOLD,
     CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_INDOOR_TEMPERATURE_ENTITY,
+    CONF_MAX_INDOOR_DEW_POINT_SPREAD,
     CONF_MAX_INDOOR_HUMIDITY,
     CONF_MAX_INDOOR_TEMPERATURE,
+    CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
     CONF_MIN_INDOOR_TEMPERATURE,
     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
     CONF_MIN_INDOOR_HUMIDITY,
@@ -34,8 +38,12 @@ from .const import (
     CONF_UPDATE_INTERVAL_MINUTES,
     CONF_WINDOW_ENTITY,
     DEFAULT_HUMIDITY_HYSTERESIS,
+    DEFAULT_CRITICAL_INDOOR_HUMIDITY,
+    DEFAULT_HUMIDITY_SPIKE_THRESHOLD,
     DEFAULT_MAX_INDOOR_HUMIDITY,
+    DEFAULT_MAX_INDOOR_DEW_POINT_SPREAD,
     DEFAULT_MAX_INDOOR_TEMPERATURE,
+    DEFAULT_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
     DEFAULT_MIN_INDOOR_TEMPERATURE,
     DOMAIN,
     DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
@@ -48,7 +56,14 @@ from .const import (
     REASON_DRYNESS,
     REASON_HUMIDITY,
     REASON_INDOOR_TOO_COLD,
+    REASON_DETAIL_CRITICAL_HUMIDITY,
+    REASON_DETAIL_DEW_POINT_RISK,
+    REASON_DETAIL_HUMIDITY_SPIKE,
+    REASON_DETAIL_MIN_VENTILATION_DURATION,
+    REASON_OUTDOOR_WARMER,
     REASON_OUTDOOR_WARMER_AND_MORE_HUMID,
+    REASON_OUTDOOR_MORE_HUMID,
+    REASON_STRUCTURE_PROTECTION_ACTIVE,
     REASON_TEMPERATURE,
     REASON_TEMPERATURE_AND_DRYNESS,
     REASON_TEMPERATURE_AND_HUMIDITY,
@@ -75,8 +90,10 @@ class VentilationRecommendationData:
     indoor_dew_point: float
     outdoor_dew_point: float
     reason: str
+    reason_detail: str | None
     humidity_recommended: bool
     temperature_recommended: bool
+    structure_protection_active: bool
     window_open: bool
 
 
@@ -88,6 +105,7 @@ class VentilationRecommendationCoordinator(
         self._last_notified_recommendation: str | None = None
         self._last_notification_at = None
         self._reminder_count = 0
+        self._structure_protection_started_at = None
 
         super().__init__(
             hass,
@@ -103,6 +121,18 @@ class VentilationRecommendationCoordinator(
 
     def _get_config_value(self, key: str, default: bool | float | int | str) -> bool | float | int | str:
         return self.entry.options.get(key, self.entry.data.get(key, default))
+
+    def _get_required_entity_id(self, key: str) -> str:
+        value = self._get_config_value(key, self.entry.data[key])
+        if isinstance(value, str) and value.strip():
+            return value
+        raise HomeAssistantError(f"Missing entity configuration: {key}")
+
+    def _get_optional_entity_id(self, key: str) -> str | None:
+        value = self._get_config_value(key, self.entry.data.get(key, ""))
+        if isinstance(value, str) and value.strip():
+            return value
+        return None
 
     def initialize_notification_tracking(self) -> None:
         if self.data is not None:
@@ -215,47 +245,22 @@ class VentilationRecommendationCoordinator(
         self._reminder_count = 0
 
     async def _async_update_data(self) -> VentilationRecommendationData:
+        now = dt_util.utcnow()
         try:
             indoor_temperature = self._get_float_state(
-                str(
-                    self._get_config_value(
-                        CONF_INDOOR_TEMPERATURE_ENTITY,
-                        self.entry.data[CONF_INDOOR_TEMPERATURE_ENTITY],
-                    )
-                )
+                self._get_required_entity_id(CONF_INDOOR_TEMPERATURE_ENTITY)
             )
             indoor_humidity = self._get_float_state(
-                str(
-                    self._get_config_value(
-                        CONF_INDOOR_HUMIDITY_ENTITY,
-                        self.entry.data[CONF_INDOOR_HUMIDITY_ENTITY],
-                    )
-                )
+                self._get_required_entity_id(CONF_INDOOR_HUMIDITY_ENTITY)
             )
             outdoor_temperature = self._get_float_state(
-                str(
-                    self._get_config_value(
-                        CONF_OUTDOOR_TEMPERATURE_ENTITY,
-                        self.entry.data[CONF_OUTDOOR_TEMPERATURE_ENTITY],
-                    )
-                )
+                self._get_required_entity_id(CONF_OUTDOOR_TEMPERATURE_ENTITY)
             )
             outdoor_humidity = self._get_float_state(
-                str(
-                    self._get_config_value(
-                        CONF_OUTDOOR_HUMIDITY_ENTITY,
-                        self.entry.data[CONF_OUTDOOR_HUMIDITY_ENTITY],
-                    )
-                )
+                self._get_required_entity_id(CONF_OUTDOOR_HUMIDITY_ENTITY)
             )
             window_open = self._get_window_open_state(
-                str(
-                    self._get_config_value(
-                        CONF_WINDOW_ENTITY,
-                        self.entry.data.get(CONF_WINDOW_ENTITY, ""),
-                    )
-                )
-                or None
+                self._get_optional_entity_id(CONF_WINDOW_ENTITY)
             )
         except HomeAssistantError as err:
             raise UpdateFailed(str(err)) from err
@@ -285,6 +290,12 @@ class VentilationRecommendationCoordinator(
                 DEFAULT_MAX_INDOOR_HUMIDITY,
             )
         )
+        critical_indoor_humidity = float(
+            self._get_config_value(
+                CONF_CRITICAL_INDOOR_HUMIDITY,
+                DEFAULT_CRITICAL_INDOOR_HUMIDITY,
+            )
+        )
         min_indoor_humidity = float(
             self._get_config_value(
                 CONF_MIN_INDOOR_HUMIDITY,
@@ -307,6 +318,24 @@ class VentilationRecommendationCoordinator(
             self._get_config_value(
                 CONF_MIN_TEMPERATURE_DELTA,
                 DEFAULT_MIN_TEMPERATURE_DELTA,
+            )
+        )
+        max_indoor_dew_point_spread = float(
+            self._get_config_value(
+                CONF_MAX_INDOOR_DEW_POINT_SPREAD,
+                DEFAULT_MAX_INDOOR_DEW_POINT_SPREAD,
+            )
+        )
+        humidity_spike_threshold = float(
+            self._get_config_value(
+                CONF_HUMIDITY_SPIKE_THRESHOLD,
+                DEFAULT_HUMIDITY_SPIKE_THRESHOLD,
+            )
+        )
+        min_structure_protection_ventilation_minutes = int(
+            self._get_config_value(
+                CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
+                DEFAULT_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
             )
         )
         humidity_hysteresis = float(
@@ -350,22 +379,68 @@ class VentilationRecommendationCoordinator(
         )
         humidity_recommended = too_humid or too_dry
 
+        previous_indoor_humidity = self.data.indoor_humidity if self.data is not None else None
+        humidity_spike_detected = (
+            previous_indoor_humidity is not None
+            and indoor_humidity - previous_indoor_humidity >= humidity_spike_threshold
+        )
+        dehumidification_possible = absolute_humidity_delta > 0
+        indoor_dew_point_spread = indoor_temperature - indoor_dew_point
+
+        structure_reason_detail: str | None = None
+        if (
+            indoor_humidity >= critical_indoor_humidity
+            and dehumidification_possible
+        ):
+            structure_reason_detail = REASON_DETAIL_CRITICAL_HUMIDITY
+        elif (
+            indoor_dew_point_spread <= max_indoor_dew_point_spread
+            and dehumidification_possible
+        ):
+            structure_reason_detail = REASON_DETAIL_DEW_POINT_RISK
+        elif humidity_spike_detected and dehumidification_possible:
+            structure_reason_detail = REASON_DETAIL_HUMIDITY_SPIKE
+
+        structure_protection_recommended = structure_reason_detail is not None
+
         temp_diff = indoor_temperature - outdoor_temperature
         outside_cooler = outdoor_temperature < indoor_temperature
         outside_warmer = outdoor_temperature > indoor_temperature
         outside_more_humid = outdoor_humidity > indoor_humidity
+        humidity_reduction_possible = dehumidification_possible
         outdoor_warmer_and_more_humid = outside_warmer and outside_more_humid
+        outdoor_warmer_without_humidity_benefit = outside_warmer and not humidity_reduction_possible
         indoor_too_cold_for_more_cooling = (
             indoor_temperature <= min_indoor_temperature and outside_cooler
         )
         ventilation_not_recommended = (
-            outdoor_warmer_and_more_humid or indoor_too_cold_for_more_cooling
+            outside_more_humid
+            or outdoor_warmer_without_humidity_benefit
+            or (indoor_too_cold_for_more_cooling and not humidity_reduction_possible)
         )
         temperature_recommended = (
             indoor_temperature >= max_indoor_temperature
             and temp_diff >= temperature_delta_threshold
             and (outside_cooler or not require_outside_cooler)
         )
+
+        if structure_protection_recommended:
+            if self._structure_protection_started_at is None:
+                self._structure_protection_started_at = now
+        elif (
+            self._structure_protection_started_at is not None
+            and self.data is not None
+            and self.data.recommendation == STATE_LUEFTEN_EMPFOHLEN
+            and self.data.structure_protection_active
+            and min_structure_protection_ventilation_minutes > 0
+            and now - self._structure_protection_started_at
+            < timedelta(minutes=min_structure_protection_ventilation_minutes)
+            and dehumidification_possible
+        ):
+            structure_protection_recommended = True
+            structure_reason_detail = REASON_DETAIL_MIN_VENTILATION_DURATION
+        else:
+            self._structure_protection_started_at = None
 
         if temperature_recommended and too_humid:
             reason = REASON_TEMPERATURE_AND_HUMIDITY
@@ -380,7 +455,12 @@ class VentilationRecommendationCoordinator(
         else:
             reason = REASON_UNKNOWN
 
-        should_ventilate = humidity_recommended or temperature_recommended
+        should_ventilate = (
+            humidity_recommended
+            or temperature_recommended
+            or structure_protection_recommended
+        )
+        reason_detail: str | None = None
 
         if ventilation_not_recommended:
             recommendation = (
@@ -391,10 +471,17 @@ class VentilationRecommendationCoordinator(
             reason = (
                 REASON_OUTDOOR_WARMER_AND_MORE_HUMID
                 if outdoor_warmer_and_more_humid
+                else REASON_OUTDOOR_MORE_HUMID
+                if outside_more_humid
+                else REASON_OUTDOOR_WARMER
+                if outdoor_warmer_without_humidity_benefit
                 else REASON_INDOOR_TOO_COLD
             )
         elif should_ventilate:
             recommendation = STATE_LUEFTEN_EMPFOHLEN
+            if structure_protection_recommended:
+                reason = REASON_STRUCTURE_PROTECTION_ACTIVE
+                reason_detail = structure_reason_detail
         else:
             recommendation = (
                 STATE_FENSTER_WIEDER_SCHLIESSEN
@@ -414,8 +501,10 @@ class VentilationRecommendationCoordinator(
             indoor_dew_point=round(indoor_dew_point, 2),
             outdoor_dew_point=round(outdoor_dew_point, 2),
             reason=reason,
+            reason_detail=reason_detail,
             humidity_recommended=humidity_recommended,
             temperature_recommended=temperature_recommended,
+            structure_protection_active=structure_protection_recommended,
             window_open=window_open,
         )
 
@@ -528,16 +617,32 @@ class VentilationRecommendationCoordinator(
         if self.data is None:
             return REASON_UNKNOWN
 
+        if self.data.reason == REASON_STRUCTURE_PROTECTION_ACTIVE:
+            return self._build_structure_reason_detail_text(self.data.reason_detail)
+
         return {
             REASON_TEMPERATURE: "zu warm innen und außen ausreichend kühler",
             REASON_HUMIDITY: "innen zu feucht und außen trockener",
             REASON_DRYNESS: "innen zu trocken und außen feuchter",
+            REASON_STRUCTURE_PROTECTION_ACTIVE: "Strukturschutz aktiv",
             REASON_INDOOR_TOO_COLD: "innen bereits zu kalt für weiteres Lüften",
+            REASON_OUTDOOR_WARMER: "außen wärmer als innen",
             REASON_OUTDOOR_WARMER_AND_MORE_HUMID: "außen wärmer und feuchter als innen",
+            REASON_OUTDOOR_MORE_HUMID: "außen feuchter als innen",
             REASON_TEMPERATURE_AND_HUMIDITY: "innen zu warm und zu feucht",
             REASON_TEMPERATURE_AND_DRYNESS: "innen zu warm und zu trocken",
             REASON_UNKNOWN: "keine eindeutige Ursache",
         }[self.data.reason]
+
+    @staticmethod
+    def _build_structure_reason_detail_text(reason_detail: str | None) -> str:
+        return {
+            REASON_DETAIL_CRITICAL_HUMIDITY: "kritische Innenfeuchtigkeit",
+            REASON_DETAIL_DEW_POINT_RISK: "hohes Taupunkt-/Kondensationsrisiko",
+            REASON_DETAIL_HUMIDITY_SPIKE: "schneller Feuchteanstieg innen",
+            REASON_DETAIL_MIN_VENTILATION_DURATION: "Mindestlüftungsdauer für Entfeuchtung aktiv",
+            None: "Strukturschutz aktiv",
+        }[reason_detail]
 
     @staticmethod
     def _calculate_absolute_humidity(temperature_c: float, humidity_percent: float) -> float:

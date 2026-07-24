@@ -17,6 +17,8 @@ from .const import (
     ATTR_OUTDOOR_ABSOLUTE_HUMIDITY,
     ATTR_OUTDOOR_DEW_POINT,
     ATTR_REASON,
+    ATTR_REASON_DETAIL,
+    ATTR_STRUCTURE_PROTECTION_ACTIVE,
     ATTR_TEMPERATURE_RECOMMENDED,
     ATTR_WINDOW_OPEN,
     DEFAULT_NAME,
@@ -29,7 +31,14 @@ from .const import (
     REASON_HUMIDITY,
     REASON_DRYNESS,
     REASON_INDOOR_TOO_COLD,
+    REASON_DETAIL_CRITICAL_HUMIDITY,
+    REASON_DETAIL_DEW_POINT_RISK,
+    REASON_DETAIL_HUMIDITY_SPIKE,
+    REASON_DETAIL_MIN_VENTILATION_DURATION,
+    REASON_OUTDOOR_WARMER,
     REASON_OUTDOOR_WARMER_AND_MORE_HUMID,
+    REASON_OUTDOOR_MORE_HUMID,
+    REASON_STRUCTURE_PROTECTION_ACTIVE,
     REASON_TEMPERATURE_AND_HUMIDITY,
     REASON_TEMPERATURE_AND_DRYNESS,
     REASON_UNKNOWN,
@@ -49,10 +58,20 @@ REASON_LABELS: dict[str, str] = {
     REASON_HUMIDITY: "Innen zu feucht, außen trockener",
     REASON_DRYNESS: "Innen zu trocken, außen feuchter",
     REASON_INDOOR_TOO_COLD: "Innen bereits zu kalt für weiteres Lüften",
+    REASON_OUTDOOR_WARMER: "Außen wärmer als innen",
     REASON_OUTDOOR_WARMER_AND_MORE_HUMID: "Außen wärmer und feuchter als innen",
+    REASON_OUTDOOR_MORE_HUMID: "Außen feuchter als innen",
+    REASON_STRUCTURE_PROTECTION_ACTIVE: "Strukturschutz aktiv",
     REASON_TEMPERATURE_AND_HUMIDITY: "Zu warm und zu feucht",
     REASON_TEMPERATURE_AND_DRYNESS: "Zu warm und zu trocken",
     REASON_UNKNOWN: "Kein eindeutiger Lüftungsgrund",
+}
+
+REASON_DETAIL_LABELS: dict[str, str] = {
+    REASON_DETAIL_CRITICAL_HUMIDITY: "Kritische Innenfeuchtigkeit",
+    REASON_DETAIL_DEW_POINT_RISK: "Hohes Taupunkt-/Kondensationsrisiko",
+    REASON_DETAIL_HUMIDITY_SPIKE: "Schneller Feuchteanstieg innen",
+    REASON_DETAIL_MIN_VENTILATION_DURATION: "Mindestlüftungsdauer für Entfeuchtung aktiv",
 }
 
 SENSOR_DESCRIPTION = SensorEntityDescription(
@@ -97,6 +116,21 @@ class VentilationRecommendationSensor(
 
     @property
     def icon(self) -> str:
+        if self.coordinator.data.reason == REASON_STRUCTURE_PROTECTION_ACTIVE:
+            return "mdi:water-percent-alert"
+
+        if self.coordinator.data.reason in {
+            REASON_HUMIDITY,
+            REASON_TEMPERATURE_AND_HUMIDITY,
+        }:
+            return "mdi:water-percent-alert"
+
+        if self.coordinator.data.reason in {
+            REASON_TEMPERATURE,
+            REASON_TEMPERATURE_AND_DRYNESS,
+        }:
+            return "mdi:thermometer-alert"
+
         if self.coordinator.data.recommendation == STATE_LUEFTEN_EMPFOHLEN:
             return "mdi:window-open-variant"
 
@@ -107,7 +141,13 @@ class VentilationRecommendationSensor(
         data = self.coordinator.data
         return {
             ATTR_REASON: REASON_LABELS.get(data.reason, data.reason),
+            ATTR_REASON_DETAIL: (
+                REASON_DETAIL_LABELS.get(data.reason_detail, data.reason_detail)
+                if data.reason_detail
+                else None
+            ),
             "reason_code": data.reason,
+            "reason_detail_code": data.reason_detail,
             "status_code": data.recommendation,
             "indoor_temperature": data.indoor_temperature,
             "indoor_humidity": data.indoor_humidity,
@@ -120,5 +160,6 @@ class VentilationRecommendationSensor(
             ATTR_OUTDOOR_DEW_POINT: data.outdoor_dew_point,
             ATTR_HUMIDITY_RECOMMENDED: data.humidity_recommended,
             ATTR_TEMPERATURE_RECOMMENDED: data.temperature_recommended,
+            ATTR_STRUCTURE_PROTECTION_ACTIVE: data.structure_protection_active,
             ATTR_WINDOW_OPEN: data.window_open,
         }

@@ -10,11 +10,15 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    CONF_CRITICAL_INDOOR_HUMIDITY,
     CONF_HUMIDITY_HYSTERESIS,
+    CONF_HUMIDITY_SPIKE_THRESHOLD,
     CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_INDOOR_TEMPERATURE_ENTITY,
+    CONF_MAX_INDOOR_DEW_POINT_SPREAD,
     CONF_MAX_INDOOR_HUMIDITY,
     CONF_MAX_INDOOR_TEMPERATURE,
+    CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
     CONF_MIN_INDOOR_TEMPERATURE,
     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
     CONF_MIN_INDOOR_HUMIDITY,
@@ -30,9 +34,13 @@ from .const import (
     CONF_UPDATE_INTERVAL_MINUTES,
     CONF_WINDOW_ENTITY,
     DEFAULT_HUMIDITY_HYSTERESIS,
+    DEFAULT_CRITICAL_INDOOR_HUMIDITY,
+    DEFAULT_HUMIDITY_SPIKE_THRESHOLD,
     DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
+    DEFAULT_MAX_INDOOR_DEW_POINT_SPREAD,
     DEFAULT_MAX_INDOOR_HUMIDITY,
     DEFAULT_MAX_INDOOR_TEMPERATURE,
+    DEFAULT_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
     DEFAULT_MIN_INDOOR_TEMPERATURE,
     DEFAULT_MIN_INDOOR_HUMIDITY,
     DEFAULT_MIN_TEMPERATURE_DELTA,
@@ -81,6 +89,10 @@ CONFIG_SCHEMA = vol.Schema(
                     default=DEFAULT_MAX_INDOOR_HUMIDITY,
                 ): vol.Coerce(float),
                 vol.Optional(
+                    CONF_CRITICAL_INDOOR_HUMIDITY,
+                    default=DEFAULT_CRITICAL_INDOOR_HUMIDITY,
+                ): vol.Coerce(float),
+                vol.Optional(
                     CONF_MIN_INDOOR_HUMIDITY,
                     default=DEFAULT_MIN_INDOOR_HUMIDITY,
                 ): vol.Coerce(float),
@@ -93,8 +105,16 @@ CONFIG_SCHEMA = vol.Schema(
                     default=DEFAULT_MIN_INDOOR_TEMPERATURE,
                 ): vol.Coerce(float),
                 vol.Optional(
+                    CONF_MAX_INDOOR_DEW_POINT_SPREAD,
+                    default=DEFAULT_MAX_INDOOR_DEW_POINT_SPREAD,
+                ): vol.Coerce(float),
+                vol.Optional(
                     CONF_MIN_TEMPERATURE_DELTA,
                     default=DEFAULT_MIN_TEMPERATURE_DELTA,
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_HUMIDITY_SPIKE_THRESHOLD,
+                    default=DEFAULT_HUMIDITY_SPIKE_THRESHOLD,
                 ): vol.Coerce(float),
                 vol.Optional(
                     CONF_HUMIDITY_HYSTERESIS,
@@ -108,6 +128,10 @@ CONFIG_SCHEMA = vol.Schema(
                     CONF_UPDATE_INTERVAL_MINUTES,
                     default=DEFAULT_UPDATE_INTERVAL_MINUTES,
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+                vol.Optional(
+                    CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
+                    default=DEFAULT_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=120)),
             }
         )
     },
@@ -156,5 +180,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+    await hass.config_entries.async_reload(entry.entry_id)

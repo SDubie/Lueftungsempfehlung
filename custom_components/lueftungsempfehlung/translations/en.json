@@ -18,13 +18,17 @@
           "require_outside_cooler": "Outside air must be cooler",
           "min_absolute_humidity_delta": "Minimum absolute humidity delta (g/m³)",
           "max_indoor_humidity": "Maximum indoor humidity (%)",
+          "critical_indoor_humidity": "Critical indoor humidity (%)",
           "min_indoor_humidity": "Minimum indoor humidity (%)",
           "max_indoor_temperature": "Maximum indoor temperature (°C)",
           "min_indoor_temperature": "Minimum indoor temperature (°C)",
+          "max_indoor_dew_point_spread": "Maximum indoor temperature to dew point spread (°C)",
+          "humidity_spike_threshold": "Rapid humidity rise threshold (%)",
           "min_temperature_delta": "Minimum temperature delta (°C)",
           "humidity_hysteresis": "Humidity hysteresis (g/m³)",
           "temperature_hysteresis": "Temperature hysteresis (°C)",
-          "update_interval_minutes": "Update interval in minutes"
+          "update_interval_minutes": "Update interval in minutes",
+          "min_structure_protection_ventilation_minutes": "Minimum ventilation duration for structure protection (minutes)"
         }
       }
     },
@@ -49,13 +53,17 @@
           "require_outside_cooler": "Outside air must be cooler",
           "min_absolute_humidity_delta": "Minimum absolute humidity delta (g/m³)",
           "max_indoor_humidity": "Maximum indoor humidity (%)",
+          "critical_indoor_humidity": "Critical indoor humidity (%)",
           "min_indoor_humidity": "Minimum indoor humidity (%)",
           "max_indoor_temperature": "Maximum indoor temperature (°C)",
           "min_indoor_temperature": "Minimum indoor temperature (°C)",
+          "max_indoor_dew_point_spread": "Maximum indoor temperature to dew point spread (°C)",
+          "humidity_spike_threshold": "Rapid humidity rise threshold (%)",
           "min_temperature_delta": "Minimum temperature delta (°C)",
           "humidity_hysteresis": "Humidity hysteresis (g/m³)",
           "temperature_hysteresis": "Temperature hysteresis (°C)",
-          "update_interval_minutes": "Update interval in minutes"
+          "update_interval_minutes": "Update interval in minutes",
+          "min_structure_protection_ventilation_minutes": "Minimum ventilation duration for structure protection (minutes)"
         }
       }
     }
