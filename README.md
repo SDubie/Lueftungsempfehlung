@@ -269,6 +269,17 @@ Hinweis: Als Repository-URL verwendest du die URL dieses GitHub-Repositories.
 - Verwende bevorzugt `status_code` und `reason_code` statt Klartext, damit Automationen sprachunabhängig stabil bleiben.
 - Falls bereits Automationen auf ältere Statuscodes gebaut wurden, bitte auf die aktuellen vier Codes umstellen.
 
+## Konfiguration später ändern
+
+Die einmal eingerichtete Konfiguration kannst du jederzeit nachträglich anpassen:
+
+1. In Home Assistant zu "Einstellungen -> Geräte & Dienste" gehen.
+2. Die Integration "Lüftungsempfehlung" öffnen.
+3. Auf "Konfigurieren" oder das Zahnrad-Menü klicken.
+4. Werte wie Sensoren, Schwellen, Hysterese, Fensterkontakt oder Benachrichtigungsgeräte anpassen.
+
+Nach dem Speichern lädt Home Assistant die Integration mit den neuen Werten neu.
+
 ## Version
 
 Aktuell laut `manifest.json`: `0.1.0`
