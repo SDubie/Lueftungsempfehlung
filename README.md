@@ -264,6 +264,10 @@ Hinweis: Als Repository-URL verwendest du die URL dieses GitHub-Repositories.
 2. Home Assistant neu starten.
 3. Entweder die Integration über "Einstellungen -> Geräte & Dienste -> Integration hinzufügen" einrichten oder per `config.yaml` importieren (siehe oben).
 
+## Entwicklung und Tests
+
+Eine ausführliche Anleitung für lokale Entwicklungsumgebung, venv-Setup und Testausführung findest du in CONTRIBUTING.md.
+
 ## Hinweise für Automationen
 
 - Verwende bevorzugt `status_code` und `reason_code` statt Klartext, damit Automationen sprachunabhängig stabil bleiben.

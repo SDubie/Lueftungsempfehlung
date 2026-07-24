@@ -14,6 +14,38 @@ Thanks for your interest in improving Lüftungsempfehlung.
 - Changes should be tested locally in a Home Assistant development environment.
 - Keep translations and documentation in sync when user-facing text changes.
 
+## Local setup
+
+Use a virtual environment for local development and tests.
+
+### Windows (PowerShell)
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+```
+
+### Linux / macOS
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+```
+
+## Running tests
+
+Run the coordinator logic tests:
+
+```bash
+pytest tests/test_coordinator_logic.py
+```
+
+If you add new behavior, please add or update tests accordingly.
+
 ## Pull requests
 
 Please include:
