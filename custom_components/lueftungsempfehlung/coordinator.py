@@ -217,19 +217,45 @@ class VentilationRecommendationCoordinator(
     async def _async_update_data(self) -> VentilationRecommendationData:
         try:
             indoor_temperature = self._get_float_state(
-                self.entry.data[CONF_INDOOR_TEMPERATURE_ENTITY]
+                str(
+                    self._get_config_value(
+                        CONF_INDOOR_TEMPERATURE_ENTITY,
+                        self.entry.data[CONF_INDOOR_TEMPERATURE_ENTITY],
+                    )
+                )
             )
             indoor_humidity = self._get_float_state(
-                self.entry.data[CONF_INDOOR_HUMIDITY_ENTITY]
+                str(
+                    self._get_config_value(
+                        CONF_INDOOR_HUMIDITY_ENTITY,
+                        self.entry.data[CONF_INDOOR_HUMIDITY_ENTITY],
+                    )
+                )
             )
             outdoor_temperature = self._get_float_state(
-                self.entry.data[CONF_OUTDOOR_TEMPERATURE_ENTITY]
+                str(
+                    self._get_config_value(
+                        CONF_OUTDOOR_TEMPERATURE_ENTITY,
+                        self.entry.data[CONF_OUTDOOR_TEMPERATURE_ENTITY],
+                    )
+                )
             )
             outdoor_humidity = self._get_float_state(
-                self.entry.data[CONF_OUTDOOR_HUMIDITY_ENTITY]
+                str(
+                    self._get_config_value(
+                        CONF_OUTDOOR_HUMIDITY_ENTITY,
+                        self.entry.data[CONF_OUTDOOR_HUMIDITY_ENTITY],
+                    )
+                )
             )
             window_open = self._get_window_open_state(
-                self.entry.data.get(CONF_WINDOW_ENTITY)
+                str(
+                    self._get_config_value(
+                        CONF_WINDOW_ENTITY,
+                        self.entry.data.get(CONF_WINDOW_ENTITY, ""),
+                    )
+                )
+                or None
             )
         except HomeAssistantError as err:
             raise UpdateFailed(str(err)) from err
