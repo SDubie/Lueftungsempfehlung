@@ -15,6 +15,7 @@ from .const import (
     CONF_INDOOR_TEMPERATURE_ENTITY,
     CONF_MAX_INDOOR_HUMIDITY,
     CONF_MAX_INDOOR_TEMPERATURE,
+    CONF_MIN_INDOOR_TEMPERATURE,
     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
     CONF_MIN_INDOOR_HUMIDITY,
     CONF_MIN_TEMPERATURE_DELTA,
@@ -32,6 +33,7 @@ from .const import (
     DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
     DEFAULT_MAX_INDOOR_HUMIDITY,
     DEFAULT_MAX_INDOOR_TEMPERATURE,
+    DEFAULT_MIN_INDOOR_TEMPERATURE,
     DEFAULT_MIN_INDOOR_HUMIDITY,
     DEFAULT_MIN_TEMPERATURE_DELTA,
     DEFAULT_NAME,
@@ -85,6 +87,10 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(
                     CONF_MAX_INDOOR_TEMPERATURE,
                     default=DEFAULT_MAX_INDOOR_TEMPERATURE,
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_MIN_INDOOR_TEMPERATURE,
+                    default=DEFAULT_MIN_INDOOR_TEMPERATURE,
                 ): vol.Coerce(float),
                 vol.Optional(
                     CONF_MIN_TEMPERATURE_DELTA,
