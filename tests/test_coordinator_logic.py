@@ -175,8 +175,9 @@ async def test_structure_protection_triggers_for_critical_humidity() -> None:
 @pytest.mark.asyncio
 async def test_structure_protection_triggers_for_dew_point_risk() -> None:
     options = _default_options()
-    options[CONF_MAX_INDOOR_DEW_POINT_SPREAD] = 2.0
+    options[CONF_MAX_INDOOR_DEW_POINT_SPREAD] = 2.5
     options[CONF_MAX_INDOOR_HUMIDITY] = 90.0
+    options[CONF_CRITICAL_INDOOR_HUMIDITY] = 95.0
 
     coordinator = _build_coordinator(
         states={
