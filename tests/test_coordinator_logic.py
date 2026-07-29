@@ -24,11 +24,15 @@ from custom_components.lueftungsempfehlung.const import (
     REASON_DETAIL_DEW_POINT_RISK,
     REASON_DETAIL_HUMIDITY_SPIKE,
     REASON_DETAIL_MIN_VENTILATION_DURATION,
+    REASON_NO_VENTILATION_NEEDED,
     REASON_OUTDOOR_MORE_HUMID,
     REASON_OUTDOOR_WARMER,
+    REASON_OUTDOOR_WARMER_AND_MORE_HUMID,
     REASON_STRUCTURE_PROTECTION_ACTIVE,
+    STATE_FENSTER_WIEDER_SCHLIESSEN,
     STATE_LUEFTEN_EMPFOHLEN,
     STATE_LUEFTEN_NICHT_EMPFOHLEN,
+    STATE_LUEFTEN_NICHT_NOETIG,
 )
 from custom_components.lueftungsempfehlung.coordinator import (
     VentilationRecommendationCoordinator,
@@ -115,6 +119,72 @@ async def test_not_recommended_when_outdoor_more_humid() -> None:
 
 
 @pytest.mark.asyncio
+async def test_not_needed_sets_explicit_no_ventilation_reason() -> None:
+    options = _default_options()
+    options[CONF_MAX_INDOOR_HUMIDITY] = 70.0
+    options[CONF_MAX_INDOOR_TEMPERATURE] = 30.0
+
+    coordinator = _build_coordinator(
+        states={
+            "sensor.indoor_temp": 22.0,
+            "sensor.indoor_humidity": 50.0,
+            "sensor.outdoor_temp": 20.0,
+            "sensor.outdoor_humidity": 45.0,
+        },
+        options=options,
+    )
+
+    result = await coordinator._async_update_data()
+
+    assert result.recommendation == STATE_LUEFTEN_NICHT_NOETIG
+    assert result.reason == REASON_NO_VENTILATION_NEEDED
+
+
+@pytest.mark.asyncio
+async def test_close_window_sets_explicit_no_ventilation_reason() -> None:
+    options = _default_options()
+    options[CONF_MAX_INDOOR_HUMIDITY] = 70.0
+    options[CONF_MAX_INDOOR_TEMPERATURE] = 30.0
+
+    coordinator = _build_coordinator(
+        states={
+            "sensor.indoor_temp": 22.0,
+            "sensor.indoor_humidity": 50.0,
+            "sensor.outdoor_temp": 20.0,
+            "sensor.outdoor_humidity": 45.0,
+            "binary_sensor.window": "on",
+        },
+        options=options,
+    )
+    coordinator.entry.data[CONF_WINDOW_ENTITY] = "binary_sensor.window"
+
+    result = await coordinator._async_update_data()
+
+    assert result.recommendation == STATE_FENSTER_WIEDER_SCHLIESSEN
+    assert result.reason == REASON_NO_VENTILATION_NEEDED
+
+
+@pytest.mark.asyncio
+async def test_recommended_when_outdoor_relative_humidity_is_higher_but_absolute_humidity_is_lower() -> None:
+    options = _default_options()
+    options[CONF_MAX_INDOOR_HUMIDITY] = 55.0
+
+    coordinator = _build_coordinator(
+        states={
+            "sensor.indoor_temp": 24.0,
+            "sensor.indoor_humidity": 60.0,
+            "sensor.outdoor_temp": 8.0,
+            "sensor.outdoor_humidity": 90.0,
+        },
+        options=options,
+    )
+
+    result = await coordinator._async_update_data()
+
+    assert result.recommendation == STATE_LUEFTEN_EMPFOHLEN
+
+
+@pytest.mark.asyncio
 async def test_recommended_when_outdoor_warmer_but_humidity_reduction_possible() -> None:
     coordinator = _build_coordinator(
         states={
@@ -132,7 +202,7 @@ async def test_recommended_when_outdoor_warmer_but_humidity_reduction_possible()
 
 
 @pytest.mark.asyncio
-async def test_not_recommended_when_outdoor_warmer_without_humidity_benefit() -> None:
+async def test_not_recommended_when_outdoor_warmer_and_absolute_more_humid() -> None:
     coordinator = _build_coordinator(
         states={
             "sensor.indoor_temp": 22.0,
@@ -146,7 +216,7 @@ async def test_not_recommended_when_outdoor_warmer_without_humidity_benefit() ->
     result = await coordinator._async_update_data()
 
     assert result.recommendation == STATE_LUEFTEN_NICHT_EMPFOHLEN
-    assert result.reason == REASON_OUTDOOR_WARMER
+    assert result.reason == REASON_OUTDOOR_WARMER_AND_MORE_HUMID
 
 
 @pytest.mark.asyncio

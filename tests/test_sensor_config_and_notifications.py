@@ -10,6 +10,7 @@ from custom_components.lueftungsempfehlung.config_flow import (
     _build_schema,
 )
 from custom_components.lueftungsempfehlung.const import (
+    ATTR_REASON_SHORT,
     CONF_CRITICAL_INDOOR_HUMIDITY,
     CONF_HUMIDITY_SPIKE_THRESHOLD,
     CONF_INDOOR_HUMIDITY_ENTITY,
@@ -110,6 +111,12 @@ def test_sensor_icon_for_default_recommendation_state() -> None:
     assert sensor.icon == "mdi:window-open-variant"
 
 
+def test_sensor_exposes_short_reason_attribute() -> None:
+    sensor = _sensor_with_data(_base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_HUMIDITY))
+
+    assert sensor.extra_state_attributes[ATTR_REASON_SHORT] == "Zu feucht"
+
+
 @pytest.mark.asyncio
 async def test_notification_sent_when_recommendation_changes_to_ventilate() -> None:
     coordinator = _coordinator_for_notifications(
@@ -143,6 +150,31 @@ async def test_no_notification_for_not_recommended_transition() -> None:
     await coordinator.async_send_notification_if_needed()
 
     assert coordinator._calls == []
+
+
+def test_notification_message_uses_absolute_humidity_for_humidity_reason() -> None:
+    coordinator = _coordinator_for_notifications(
+        _base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_HUMIDITY)
+    )
+
+    message = coordinator._build_notification_message()
+
+    assert "Grund: Zu feucht." in message
+    assert "10.0 g/m³" in message
+    assert "8.0 g/m³" in message
+    assert "55 %" not in message
+    assert "40 %" not in message
+
+
+def test_notification_message_uses_relative_humidity_for_non_humidity_reason() -> None:
+    coordinator = _coordinator_for_notifications(
+        _base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_TEMPERATURE)
+    )
+
+    message = coordinator._build_notification_message()
+
+    assert "55 %" in message
+    assert "40 %" in message
 
 
 def test_schema_applies_new_structure_protection_defaults() -> None:
