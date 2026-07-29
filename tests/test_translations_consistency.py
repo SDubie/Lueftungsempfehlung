@@ -16,7 +16,11 @@ def test_translation_keys_match_strings_definition() -> None:
 
     sections = [
         ("config", "step", "user", "data"),
+        ("config", "step", "notifications", "data"),
+        ("config", "step", "advanced", "data"),
         ("options", "step", "init", "data"),
+        ("options", "step", "notifications", "data"),
+        ("options", "step", "advanced", "data"),
     ]
 
     for section in sections:

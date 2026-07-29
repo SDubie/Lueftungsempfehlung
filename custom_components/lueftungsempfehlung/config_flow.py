@@ -70,7 +70,7 @@ def _build_unique_id(data: Mapping[str, Any]) -> str:
     )
 
 
-def _build_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
+def _build_basic_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
     values = defaults or {}
 
     return vol.Schema(
@@ -106,6 +106,15 @@ def _build_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="binary_sensor")
             ),
+        }
+    )
+
+
+def _build_notification_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
+    values = defaults or {}
+
+    return vol.Schema(
+        {
             vol.Optional(
                 CONF_NOTIFY_DEVICES,
                 default=values.get(CONF_NOTIFY_DEVICES, []),
@@ -154,6 +163,15 @@ def _build_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
                     DEFAULT_NOTIFICATION_SILENCE_ENTITY,
                 ),
             ): selector.TextSelector(),
+        }
+    )
+
+
+def _build_advanced_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
+    values = defaults or {}
+
+    return vol.Schema(
+        {
             vol.Optional(
                 CONF_REQUIRE_OUTSIDE_COOLER,
                 default=values.get(
@@ -282,20 +300,63 @@ def _build_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
     )
 
 
+def _build_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
+    """Compatibility helper for tests: full one-page schema composed from all sections."""
+    values = defaults or {}
+    schema: dict[vol.Marker, Any] = {}
+    for section in (
+        _build_basic_schema(values),
+        _build_notification_schema(values),
+        _build_advanced_schema(values),
+    ):
+        schema.update(section.schema)
+    return vol.Schema(schema)
+
+
 class LueftungsempfehlungConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
+    def __init__(self) -> None:
+        self._pending_data: dict[str, Any] = {}
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
-            await self.async_set_unique_id(_build_unique_id(user_input))
-            self._abort_if_unique_id_configured()
-
-            return self.async_create_entry(
-                title=user_input.get(CONF_NAME, DEFAULT_NAME),
-                data=user_input,
+            self._pending_data.update(user_input)
+            return self.async_show_form(
+                step_id="notifications",
+                data_schema=_build_notification_schema(self._pending_data),
             )
 
-        return self.async_show_form(step_id="user", data_schema=_build_schema())
+        return self.async_show_form(step_id="user", data_schema=_build_basic_schema())
+
+    async def async_step_notifications(self, user_input: dict[str, Any] | None = None):
+        if user_input is not None:
+            self._pending_data.update(user_input)
+            return self.async_show_form(
+                step_id="advanced",
+                data_schema=_build_advanced_schema(self._pending_data),
+            )
+
+        return self.async_show_form(
+            step_id="notifications",
+            data_schema=_build_notification_schema(self._pending_data),
+        )
+
+    async def async_step_advanced(self, user_input: dict[str, Any] | None = None):
+        if user_input is None:
+            return self.async_show_form(
+                step_id="advanced",
+                data_schema=_build_advanced_schema(self._pending_data),
+            )
+
+        self._pending_data.update(user_input)
+        await self.async_set_unique_id(_build_unique_id(self._pending_data))
+        self._abort_if_unique_id_configured()
+
+        return self.async_create_entry(
+            title=self._pending_data.get(CONF_NAME, DEFAULT_NAME),
+            data=self._pending_data,
+        )
 
     async def async_step_import(self, user_input: dict[str, Any]):
         await self.async_set_unique_id(_build_unique_id(user_input))
@@ -314,10 +375,42 @@ class LueftungsempfehlungConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class LueftungsempfehlungOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._config_entry = config_entry
+        self._defaults: dict[str, Any] = {**self._config_entry.data, **self._config_entry.options}
+        self._pending_options: dict[str, Any] = {}
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            self._pending_options.update(user_input)
+            defaults = {**self._defaults, **self._pending_options}
+            return self.async_show_form(
+                step_id="notifications",
+                data_schema=_build_notification_schema(defaults),
+            )
 
-        defaults = {**self._config_entry.data, **self._config_entry.options}
-        return self.async_show_form(step_id="init", data_schema=_build_schema(defaults))
+        return self.async_show_form(step_id="init", data_schema=_build_basic_schema(self._defaults))
+
+    async def async_step_notifications(self, user_input: dict[str, Any] | None = None):
+        if user_input is not None:
+            self._pending_options.update(user_input)
+            defaults = {**self._defaults, **self._pending_options}
+            return self.async_show_form(
+                step_id="advanced",
+                data_schema=_build_advanced_schema(defaults),
+            )
+
+        defaults = {**self._defaults, **self._pending_options}
+        return self.async_show_form(
+            step_id="notifications",
+            data_schema=_build_notification_schema(defaults),
+        )
+
+    async def async_step_advanced(self, user_input: dict[str, Any] | None = None):
+        if user_input is not None:
+            self._pending_options.update(user_input)
+            return self.async_create_entry(title="", data=self._pending_options)
+
+        defaults = {**self._defaults, **self._pending_options}
+        return self.async_show_form(
+            step_id="advanced",
+            data_schema=_build_advanced_schema(defaults),
+        )

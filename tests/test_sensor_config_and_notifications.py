@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from custom_components.lueftungsempfehlung.config_flow import (
+    LueftungsempfehlungConfigFlow,
     LueftungsempfehlungOptionsFlow,
     _build_schema,
 )
@@ -22,8 +23,12 @@ from custom_components.lueftungsempfehlung.const import (
     CONF_NOTIFICATION_SILENCE_ENTITY,
     CONF_NOTIFICATION_SILENCE_START,
     CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
+    CONF_NOTIFY_DEVICES,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
+    CONF_REMINDER_INTERVAL_MINUTES,
+    CONF_REMINDER_MAX_COUNT,
+    CONF_NAME,
     CONF_WINDOW_ENTITY,
     REASON_HUMIDITY,
     REASON_STRUCTURE_PROTECTION_ACTIVE,
@@ -33,6 +38,7 @@ from custom_components.lueftungsempfehlung.const import (
     STATE_LUEFTEN_EMPFOHLEN,
     STATE_LUEFTEN_NICHT_EMPFOHLEN,
 )
+from homeassistant import data_entry_flow
 from custom_components.lueftungsempfehlung.coordinator import (
     VentilationRecommendationCoordinator,
     VentilationRecommendationData,
@@ -261,6 +267,111 @@ async def test_options_flow_prefers_options_over_entry_data() -> None:
     )
 
     result = await flow.async_step_init(None)
-    validated = result["data_schema"]({})
+    assert result["step_id"] == "init"
+
+    notifications_step = await flow.async_step_init(
+        {
+            CONF_NAME: "Test",
+            CONF_INDOOR_TEMPERATURE_ENTITY: "sensor.indoor_temp",
+            CONF_INDOOR_HUMIDITY_ENTITY: "sensor.indoor_humidity",
+            CONF_OUTDOOR_TEMPERATURE_ENTITY: "sensor.outdoor_temp",
+            CONF_OUTDOOR_HUMIDITY_ENTITY: "sensor.outdoor_humidity",
+            CONF_WINDOW_ENTITY: "binary_sensor.window",
+        }
+    )
+    assert notifications_step["step_id"] == "notifications"
+
+    advanced_step = await flow.async_step_notifications(
+        {
+            CONF_NOTIFY_DEVICES: [],
+            CONF_REMINDER_INTERVAL_MINUTES: 60,
+            CONF_REMINDER_MAX_COUNT: 3,
+            CONF_NOTIFICATION_SILENCE_START: "",
+            CONF_NOTIFICATION_SILENCE_END: "",
+            CONF_NOTIFICATION_SILENCE_ENTITY: "",
+        }
+    )
+    assert advanced_step["step_id"] == "advanced"
+    validated = advanced_step["data_schema"]({})
 
     assert validated[CONF_MAX_INDOOR_HUMIDITY] == 65.0
+
+
+@pytest.mark.asyncio
+async def test_config_flow_runs_through_three_steps() -> None:
+    flow = LueftungsempfehlungConfigFlow()
+
+    step_user = await flow.async_step_user(None)
+    assert step_user["type"] == data_entry_flow.FlowResultType.FORM
+    assert step_user["step_id"] == "user"
+
+    step_notifications = await flow.async_step_user(
+        {
+            CONF_NAME: "Test",
+            CONF_INDOOR_TEMPERATURE_ENTITY: "sensor.indoor_temp",
+            CONF_INDOOR_HUMIDITY_ENTITY: "sensor.indoor_humidity",
+            CONF_OUTDOOR_TEMPERATURE_ENTITY: "sensor.outdoor_temp",
+            CONF_OUTDOOR_HUMIDITY_ENTITY: "sensor.outdoor_humidity",
+            CONF_WINDOW_ENTITY: "",
+        }
+    )
+    assert step_notifications["type"] == data_entry_flow.FlowResultType.FORM
+    assert step_notifications["step_id"] == "notifications"
+
+    step_advanced = await flow.async_step_notifications(
+        {
+            CONF_NOTIFY_DEVICES: [],
+            CONF_REMINDER_INTERVAL_MINUTES: 60,
+            CONF_REMINDER_MAX_COUNT: 3,
+            CONF_NOTIFICATION_SILENCE_START: "",
+            CONF_NOTIFICATION_SILENCE_END: "",
+            CONF_NOTIFICATION_SILENCE_ENTITY: "",
+        }
+    )
+    assert step_advanced["type"] == data_entry_flow.FlowResultType.FORM
+    assert step_advanced["step_id"] == "advanced"
+
+
+@pytest.mark.asyncio
+async def test_options_flow_runs_through_three_steps() -> None:
+    flow = LueftungsempfehlungOptionsFlow(
+        SimpleNamespace(
+            data={
+                CONF_INDOOR_TEMPERATURE_ENTITY: "sensor.old_indoor_temp",
+                CONF_INDOOR_HUMIDITY_ENTITY: "sensor.old_indoor_humidity",
+                CONF_OUTDOOR_TEMPERATURE_ENTITY: "sensor.old_outdoor_temp",
+                CONF_OUTDOOR_HUMIDITY_ENTITY: "sensor.old_outdoor_humidity",
+            },
+            options={},
+        )
+    )
+
+    step_init = await flow.async_step_init(None)
+    assert step_init["type"] == data_entry_flow.FlowResultType.FORM
+    assert step_init["step_id"] == "init"
+
+    step_notifications = await flow.async_step_init(
+        {
+            CONF_NAME: "Test",
+            CONF_INDOOR_TEMPERATURE_ENTITY: "sensor.indoor_temp",
+            CONF_INDOOR_HUMIDITY_ENTITY: "sensor.indoor_humidity",
+            CONF_OUTDOOR_TEMPERATURE_ENTITY: "sensor.outdoor_temp",
+            CONF_OUTDOOR_HUMIDITY_ENTITY: "sensor.outdoor_humidity",
+            CONF_WINDOW_ENTITY: "",
+        }
+    )
+    assert step_notifications["type"] == data_entry_flow.FlowResultType.FORM
+    assert step_notifications["step_id"] == "notifications"
+
+    step_advanced = await flow.async_step_notifications(
+        {
+            CONF_NOTIFY_DEVICES: [],
+            CONF_REMINDER_INTERVAL_MINUTES: 60,
+            CONF_REMINDER_MAX_COUNT: 3,
+            CONF_NOTIFICATION_SILENCE_START: "",
+            CONF_NOTIFICATION_SILENCE_END: "",
+            CONF_NOTIFICATION_SILENCE_ENTITY: "",
+        }
+    )
+    assert step_advanced["type"] == data_entry_flow.FlowResultType.FORM
+    assert step_advanced["step_id"] == "advanced"
