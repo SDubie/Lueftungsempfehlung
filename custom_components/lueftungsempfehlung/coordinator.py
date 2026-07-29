@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 import math
 
@@ -29,6 +29,9 @@ from .const import (
     CONF_MIN_INDOOR_HUMIDITY,
     CONF_MIN_TEMPERATURE_DELTA,
     CONF_NOTIFY_DEVICES,
+    CONF_NOTIFICATION_SILENCE_END,
+    CONF_NOTIFICATION_SILENCE_ENTITY,
+    CONF_NOTIFICATION_SILENCE_START,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_REMINDER_INTERVAL_MINUTES,
@@ -49,6 +52,9 @@ from .const import (
     DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
     DEFAULT_MIN_INDOOR_HUMIDITY,
     DEFAULT_MIN_TEMPERATURE_DELTA,
+    DEFAULT_NOTIFICATION_SILENCE_END,
+    DEFAULT_NOTIFICATION_SILENCE_ENTITY,
+    DEFAULT_NOTIFICATION_SILENCE_START,
     DEFAULT_REMINDER_INTERVAL_MINUTES,
     DEFAULT_REMINDER_MAX_COUNT,
     DEFAULT_REQUIRE_OUTSIDE_COOLER,
@@ -156,6 +162,11 @@ class VentilationRecommendationCoordinator(
                 self._clear_reminder_tracking()
             return
 
+        if self._is_notification_suppressed():
+            if current_recommendation != STATE_LUEFTEN_EMPFOHLEN:
+                self._clear_reminder_tracking()
+            return
+
         if self._last_notified_recommendation != current_recommendation:
             self._last_notified_recommendation = current_recommendation
 
@@ -192,6 +203,64 @@ class VentilationRecommendationCoordinator(
         )
         self._last_notification_at = now
         self._reminder_count += 1
+
+    def _is_notification_suppressed(self) -> bool:
+        return self._is_suppressed_by_time_window() or self._is_suppressed_by_external_entity()
+
+    def _is_suppressed_by_time_window(self) -> bool:
+        start_raw = str(
+            self._get_config_value(
+                CONF_NOTIFICATION_SILENCE_START,
+                DEFAULT_NOTIFICATION_SILENCE_START,
+            )
+            or ""
+        ).strip()
+        end_raw = str(
+            self._get_config_value(
+                CONF_NOTIFICATION_SILENCE_END,
+                DEFAULT_NOTIFICATION_SILENCE_END,
+            )
+            or ""
+        ).strip()
+
+        if not start_raw or not end_raw:
+            return False
+
+        try:
+            start_time = datetime.strptime(start_raw, "%H:%M").time()
+            end_time = datetime.strptime(end_raw, "%H:%M").time()
+        except ValueError:
+            _LOGGER.warning(
+                "Invalid notification silence window for integration %s: %s-%s",
+                self.entry.title,
+                start_raw,
+                end_raw,
+            )
+            return False
+
+        if start_time == end_time:
+            return False
+
+        current_time = dt_util.now().time()
+        if start_time < end_time:
+            return start_time <= current_time < end_time
+        return current_time >= start_time or current_time < end_time
+
+    def _is_suppressed_by_external_entity(self) -> bool:
+        entity_id = self._get_optional_entity_id(CONF_NOTIFICATION_SILENCE_ENTITY)
+        if not entity_id:
+            return False
+
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            _LOGGER.warning(
+                "Configured notification silence entity %s for integration %s not found",
+                entity_id,
+                self.entry.title,
+            )
+            return False
+
+        return str(state.state).lower() in {"on", "open", "home", "active", "true"}
 
     async def _async_dispatch_notifications(
         self,

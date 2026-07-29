@@ -24,6 +24,9 @@ from .const import (
     CONF_MIN_TEMPERATURE_DELTA,
     CONF_NAME,
     CONF_NOTIFY_DEVICES,
+    CONF_NOTIFICATION_SILENCE_END,
+    CONF_NOTIFICATION_SILENCE_ENTITY,
+    CONF_NOTIFICATION_SILENCE_START,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_REMINDER_INTERVAL_MINUTES,
@@ -44,6 +47,9 @@ from .const import (
     DEFAULT_MIN_INDOOR_HUMIDITY,
     DEFAULT_MIN_TEMPERATURE_DELTA,
     DEFAULT_NAME,
+    DEFAULT_NOTIFICATION_SILENCE_END,
+    DEFAULT_NOTIFICATION_SILENCE_ENTITY,
+    DEFAULT_NOTIFICATION_SILENCE_START,
     DEFAULT_REMINDER_INTERVAL_MINUTES,
     DEFAULT_REMINDER_MAX_COUNT,
     DEFAULT_REQUIRE_OUTSIDE_COOLER,
@@ -127,6 +133,27 @@ def _build_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(min=0, max=100, step=1)
             ),
+            vol.Optional(
+                CONF_NOTIFICATION_SILENCE_START,
+                default=values.get(
+                    CONF_NOTIFICATION_SILENCE_START,
+                    DEFAULT_NOTIFICATION_SILENCE_START,
+                ),
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_NOTIFICATION_SILENCE_END,
+                default=values.get(
+                    CONF_NOTIFICATION_SILENCE_END,
+                    DEFAULT_NOTIFICATION_SILENCE_END,
+                ),
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_NOTIFICATION_SILENCE_ENTITY,
+                default=values.get(
+                    CONF_NOTIFICATION_SILENCE_ENTITY,
+                    DEFAULT_NOTIFICATION_SILENCE_ENTITY,
+                ),
+            ): selector.TextSelector(),
             vol.Optional(
                 CONF_REQUIRE_OUTSIDE_COOLER,
                 default=values.get(

@@ -18,6 +18,9 @@ from custom_components.lueftungsempfehlung.const import (
     CONF_MAX_INDOOR_DEW_POINT_SPREAD,
     CONF_MAX_INDOOR_HUMIDITY,
     CONF_MAX_INDOOR_TEMPERATURE,
+    CONF_NOTIFICATION_SILENCE_END,
+    CONF_NOTIFICATION_SILENCE_ENTITY,
+    CONF_NOTIFICATION_SILENCE_START,
     CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
@@ -82,7 +85,10 @@ def _coordinator_for_notifications(data: VentilationRecommendationData) -> Venti
         async def async_call(self, domain: str, service: str, payload: dict[str, str], blocking: bool = False) -> None:
             calls.append({"domain": domain, "service": service, **payload})
 
-    coordinator.hass = SimpleNamespace(services=_Services())
+    coordinator.hass = SimpleNamespace(
+        services=_Services(),
+        states=SimpleNamespace(get=lambda _: None),
+    )
     coordinator._get_notify_device_ids = lambda: ["device-1"]
     coordinator._resolve_notify_services = lambda _: ["mobile_app_test_device"]
     coordinator._calls = calls
@@ -152,6 +158,39 @@ async def test_no_notification_for_not_recommended_transition() -> None:
     assert coordinator._calls == []
 
 
+@pytest.mark.asyncio
+async def test_no_notification_when_silence_window_is_active() -> None:
+    coordinator = _coordinator_for_notifications(
+        _base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_HUMIDITY)
+    )
+    coordinator.entry.options = {
+        CONF_NOTIFICATION_SILENCE_START: "00:00",
+        CONF_NOTIFICATION_SILENCE_END: "23:59",
+    }
+
+    await coordinator.async_send_notification_if_needed()
+
+    assert coordinator._calls == []
+
+
+@pytest.mark.asyncio
+async def test_no_notification_when_external_silence_entity_is_active() -> None:
+    coordinator = _coordinator_for_notifications(
+        _base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_HUMIDITY)
+    )
+    coordinator.entry.options = {
+        CONF_NOTIFICATION_SILENCE_ENTITY: "schedule.notification_quiet_hours"
+    }
+    coordinator.hass = SimpleNamespace(
+        services=coordinator.hass.services,
+        states=SimpleNamespace(get=lambda _: SimpleNamespace(state="on")),
+    )
+
+    await coordinator.async_send_notification_if_needed()
+
+    assert coordinator._calls == []
+
+
 def test_notification_message_uses_absolute_humidity_for_humidity_reason() -> None:
     coordinator = _coordinator_for_notifications(
         _base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_HUMIDITY)
@@ -188,6 +227,9 @@ def test_schema_applies_new_structure_protection_defaults() -> None:
         CONF_MAX_INDOOR_DEW_POINT_SPREAD: 3.2,
         CONF_HUMIDITY_SPIKE_THRESHOLD: 6.5,
         CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES: 15,
+        CONF_NOTIFICATION_SILENCE_START: "22:00",
+        CONF_NOTIFICATION_SILENCE_END: "07:00",
+        CONF_NOTIFICATION_SILENCE_ENTITY: "schedule.notification_quiet_hours",
     }
 
     validated = _build_schema(defaults)({})
@@ -196,6 +238,9 @@ def test_schema_applies_new_structure_protection_defaults() -> None:
     assert validated[CONF_MAX_INDOOR_DEW_POINT_SPREAD] == 3.2
     assert validated[CONF_HUMIDITY_SPIKE_THRESHOLD] == 6.5
     assert validated[CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES] == 15
+    assert validated[CONF_NOTIFICATION_SILENCE_START] == "22:00"
+    assert validated[CONF_NOTIFICATION_SILENCE_END] == "07:00"
+    assert validated[CONF_NOTIFICATION_SILENCE_ENTITY] == "schedule.notification_quiet_hours"
 
 
 @pytest.mark.asyncio
