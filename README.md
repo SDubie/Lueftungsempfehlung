@@ -12,10 +12,14 @@ Ziel der Logik:
 
 - 1 Sensor-Entity mit Klartext-Status
 - Status- und Grund-Codes als Attribute für Automationen
+- Kurze und lange Grundtexte (`reason_short` und `reason`)
 - Optionale Einbindung eines Fenster-/Türkontakts
 - Optionale Push-Benachrichtigungen über mobile_app-Geräte
 - Erinnerungen für "Lüften empfohlen"
+- Konfigurierbares Ruhezeitfenster für Benachrichtigungen (`HH:MM`)
+- Externe Stummschaltung über Entität (z. B. `schedule.*`, `input_boolean.*`)
 - Hysterese für stabilere Entscheidungen (weniger Hin- und Herwechsel)
+- Mehrstufige Konfiguration in Home Assistant (Basis, Benachrichtigungen, Erweitert)
 
 ## Konfiguration über config.yaml (optional)
 
@@ -35,16 +39,23 @@ lueftungsempfehlung:
     - 0123456789abcdef0123456789abcdef
   reminder_interval_minutes: 60
   reminder_max_count: 3
+  notification_silence_start: "22:00"
+  notification_silence_end: "07:00"
+  notification_silence_entity: schedule.notification_quiet_hours
   require_outside_cooler: true
   min_absolute_humidity_delta: 1.0
   max_indoor_humidity: 60
+  critical_indoor_humidity: 70
   min_indoor_humidity: 0
   max_indoor_temperature: 23
   min_indoor_temperature: 18
+  max_indoor_dew_point_spread: 2.0
+  humidity_spike_threshold: 5.0
   min_temperature_delta: 2.0
   humidity_hysteresis: 0.3
   temperature_hysteresis: 0.5
   update_interval_minutes: 5
+  min_structure_protection_ventilation_minutes: 10
 ```
 
 Danach Home Assistant neu starten. Die Integration wird beim Start importiert und als Config Entry angelegt.
@@ -62,15 +73,22 @@ Danach Home Assistant neu starten. Die Integration wird beim Start importiert un
 | `notify_devices` | Nein | `[]` | Liste von mobile_app-Geräte-IDs für Push |
 | `reminder_interval_minutes` | Nein | `60` | Intervall für Erinnerungen bei "Lüften empfohlen" |
 | `reminder_max_count` | Nein | `3` | Max. Erinnerungen pro Empfehlungsphase (`0` = aus) |
+| `notification_silence_start` | Nein | leer | Start der Ruhezeit für Benachrichtigungen (`HH:MM`) |
+| `notification_silence_end` | Nein | leer | Ende der Ruhezeit für Benachrichtigungen (`HH:MM`) |
+| `notification_silence_entity` | Nein | leer | Externe Entität für Stummschaltung (`on`/`active` unterdrückt Push) |
 | `require_outside_cooler` | Nein | `true` | Temperaturbedingt nur empfehlen, wenn außen kühler ist |
 | `min_absolute_humidity_delta` | Nein | `1.0` | Mind. Differenz absolute Feuchte (g/m³) für Feuchte-Lüften |
 | `max_indoor_humidity` | Nein | `60` | Obere Feuchtegrenze innen in % |
+| `critical_indoor_humidity` | Nein | `70` | Kritische Innenfeuchte für Strukturschutz |
 | `min_indoor_humidity` | Nein | `0` | Untere Feuchtegrenze innen in % (`0` deaktiviert "zu trocken") |
 | `max_indoor_temperature` | Nein | `23` | Obere Temperaturgrenze innen in °C |
 | `min_indoor_temperature` | Nein | `18` | Untere Temperaturgrenze innen in °C (Kälteschutz) |
+| `max_indoor_dew_point_spread` | Nein | `2.0` | Max. Abstand Innen-Temperatur zu Innen-Taupunkt (Strukturschutz) |
+| `humidity_spike_threshold` | Nein | `5.0` | Schwelle für schnellen Feuchteanstieg (Strukturschutz) |
 | `min_temperature_delta` | Nein | `2.0` | Mind. Temperaturdifferenz innen-außen in °C |
 | `humidity_hysteresis` | Nein | `0.3` | Hysterese für Feuchteentscheidung (g/m³) |
 | `temperature_hysteresis` | Nein | `0.5` | Hysterese für Temperaturentscheidung (°C) |
+| `min_structure_protection_ventilation_minutes` | Nein | `10` | Mindestlüftungsdauer, wenn Strukturschutz aktiv war |
 | `update_interval_minutes` | Nein | `5` | Aktualisierungsintervall der Berechnung |
 
 ## Ausgegebene Stati
@@ -123,10 +141,12 @@ Die absolute Feuchte ist die zentrale Größe für die Feuchtebewertung.
 
 Lüften wird als nicht empfehlenswert eingestuft, wenn mindestens eine Bedingung gilt:
 
-- Außen ist **wärmer** als innen **und** außen ist **feuchter** als innen
+- Außen ist in **absoluter Feuchte** höher als innen
+- Außen ist wärmer als innen und es gibt **keinen** Entfeuchtungsvorteil
 - Innen ist bereits zu kalt:
   - innen <= `min_indoor_temperature`
   - und außen ist kühler als innen
+  - und es gibt **keinen** Entfeuchtungsvorteil
 
 ### 5) Finale Statusauswahl
 
@@ -153,6 +173,13 @@ Wenn `notify_devices` konfiguriert ist:
   - maximale Anzahl: `reminder_max_count`
 - Bei Wechsel auf **Fenster wieder schließen** wird ebenfalls benachrichtigt
 - Für **Lüften nicht nötig** und **Lüften nicht empfohlen** gibt es keine automatische Push-Meldung bei Statusgleichheit
+- Während Ruhezeitfenster (`notification_silence_start`/`notification_silence_end`) werden Benachrichtigungen unterdrückt
+- Wenn `notification_silence_entity` auf `on`, `active`, `open`, `home` oder `true` steht, werden Benachrichtigungen ebenfalls unterdrückt
+
+Format der Meldung:
+- Nutzt den kurzen Grundtext (`reason_short`), z. B. "Zu feucht"
+- Bei Feuchte-Gründen werden absolute Feuchten (g/m³) angezeigt
+- Bei anderen Gründen wird weiterhin relative Feuchte (%) angezeigt
 
 Die Ziel-Notify-Services werden aus den mobile_app-Gerätenamen gebildet:
 - `notify.mobile_app_<slug_des_geraetenamens>`
@@ -177,6 +204,14 @@ Die Ziel-Notify-Services werden aus den mobile_app-Gerätenamen gebildet:
 
 - `notify_devices`
   - mobile_app-Geräte für Push-Benachrichtigungen
+
+- `notification_silence_start` und `notification_silence_end`
+  - Optionales Ruhezeitfenster im Format `HH:MM`
+  - Funktioniert auch über Mitternacht (z. B. `22:00` bis `07:00`)
+
+- `notification_silence_entity`
+  - Externe Stummschaltung, z. B. per Schedule-Helper
+  - Bei aktivem Zustand (`on`/`active`) werden Push-Benachrichtigungen pausiert
 
 - `update_interval_minutes` (Standard: `5`)
   - Aktualisierungsintervall der Berechnung
@@ -224,13 +259,29 @@ Die Ziel-Notify-Services werden aus den mobile_app-Gerätenamen gebildet:
   - maximale Anzahl Erinnerungen pro Empfehlungsphase
   - bei `0` werden keine Erinnerungen gesendet
 
+### Strukturschutz-Parameter
+
+- `critical_indoor_humidity` (Standard: `70`)
+  - kritische Innenfeuchte; kann Lüften unabhängig von Komfortbedarf empfehlen
+
+- `max_indoor_dew_point_spread` (Standard: `2.0` °C)
+  - aktiviert Strukturschutz bei hohem Taupunkt-/Kondensationsrisiko
+
+- `humidity_spike_threshold` (Standard: `5.0` %)
+  - erkennt schnellen Feuchteanstieg im Innenraum
+
+- `min_structure_protection_ventilation_minutes` (Standard: `10`)
+  - hält Strukturschutz-Lüftung für eine Mindestdauer aufrecht
+
 ## Sensor-Attribute
 
 Wichtige Attribute für Dashboards/Automationen:
 
 - `status_code`
 - `reason` (lokalisierter Klartext)
+- `reason_short` (kurzer Klartext)
 - `reason_code`
+- `reason_detail` und `reason_detail_code`
 - `indoor_temperature`, `indoor_humidity`
 - `outdoor_temperature`, `outdoor_humidity`
 - `indoor_absolute_humidity`, `outdoor_absolute_humidity`
@@ -238,6 +289,7 @@ Wichtige Attribute für Dashboards/Automationen:
 - `indoor_dew_point`, `outdoor_dew_point`
 - `humidity_recommended`
 - `temperature_recommended`
+- `structure_protection_active`
 - `window_open`
 
 ## Installation
@@ -280,10 +332,13 @@ Die einmal eingerichtete Konfiguration kannst du jederzeit nachträglich anpasse
 1. In Home Assistant zu "Einstellungen -> Geräte & Dienste" gehen.
 2. Die Integration "Lüftungsempfehlung" öffnen.
 3. Auf "Konfigurieren" oder das Zahnrad-Menü klicken.
-4. Werte wie Sensoren, Schwellen, Hysterese, Fensterkontakt oder Benachrichtigungsgeräte anpassen.
+4. Die mehrstufige Konfiguration durchlaufen:
+  - Basis
+  - Benachrichtigungen
+  - Erweiterte Werte
 
 Nach dem Speichern lädt Home Assistant die Integration mit den neuen Werten neu.
 
 ## Version
 
-Aktuell laut `manifest.json`: `0.1.0`
+Aktuell laut `manifest.json`: `0.3.0`
