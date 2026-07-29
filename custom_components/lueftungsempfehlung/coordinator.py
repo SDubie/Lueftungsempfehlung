@@ -56,6 +56,7 @@ from .const import (
     REASON_DRYNESS,
     REASON_HUMIDITY,
     REASON_INDOOR_TOO_COLD,
+    REASON_NO_VENTILATION_NEEDED,
     REASON_DETAIL_CRITICAL_HUMIDITY,
     REASON_DETAIL_DEW_POINT_RISK,
     REASON_DETAIL_HUMIDITY_SPIKE,
@@ -406,7 +407,7 @@ class VentilationRecommendationCoordinator(
         temp_diff = indoor_temperature - outdoor_temperature
         outside_cooler = outdoor_temperature < indoor_temperature
         outside_warmer = outdoor_temperature > indoor_temperature
-        outside_more_humid = outdoor_humidity > indoor_humidity
+        outside_more_humid = outdoor_absolute_humidity > indoor_absolute_humidity
         humidity_reduction_possible = dehumidification_possible
         outdoor_warmer_and_more_humid = outside_warmer and outside_more_humid
         outdoor_warmer_without_humidity_benefit = outside_warmer and not humidity_reduction_possible
@@ -488,6 +489,7 @@ class VentilationRecommendationCoordinator(
                 if window_open
                 else STATE_LUEFTEN_NICHT_NOETIG
             )
+            reason = REASON_NO_VENTILATION_NEEDED
 
         return VentilationRecommendationData(
             recommendation=recommendation,
@@ -606,12 +608,47 @@ class VentilationRecommendationCoordinator(
             STATE_LUEFTEN_NICHT_NOETIG: "Lüften ist nicht nötig.",
         }[self.data.recommendation]
 
+        humidity_reasons = {
+            REASON_HUMIDITY,
+            REASON_TEMPERATURE_AND_HUMIDITY,
+        }
+        humidity_text = (
+            f"Innen {self.data.indoor_absolute_humidity:.1f} g/m³, "
+            f"außen {self.data.outdoor_absolute_humidity:.1f} g/m³"
+            if self.data.reason in humidity_reasons
+            else (
+                f"Innen {self.data.indoor_humidity:.0f} %, "
+                f"außen {self.data.outdoor_humidity:.0f} %"
+            )
+        )
+
         return (
             f"{state_text} "
-            f"Grund: {self._build_reason_text()}. "
-            f"Innen {self.data.indoor_temperature:.1f} °C / {self.data.indoor_humidity:.0f} %, "
-            f"außen {self.data.outdoor_temperature:.1f} °C / {self.data.outdoor_humidity:.0f} %."
+            f"Grund: {self._build_reason_short_text()}. "
+            f"Innen {self.data.indoor_temperature:.1f} °C / {humidity_text}."
         )
+
+    def _build_reason_short_text(self) -> str:
+        if self.data is None:
+            return "Unklar"
+
+        if self.data.reason == REASON_STRUCTURE_PROTECTION_ACTIVE:
+            return "Strukturschutz"
+
+        return {
+            REASON_TEMPERATURE: "Zu warm",
+            REASON_HUMIDITY: "Zu feucht",
+            REASON_DRYNESS: "Zu trocken",
+            REASON_STRUCTURE_PROTECTION_ACTIVE: "Strukturschutz",
+            REASON_INDOOR_TOO_COLD: "Innen zu kalt",
+            REASON_OUTDOOR_WARMER: "Außen wärmer",
+            REASON_OUTDOOR_WARMER_AND_MORE_HUMID: "Außen wärmer + feuchter",
+            REASON_OUTDOOR_MORE_HUMID: "Außen feuchter",
+            REASON_TEMPERATURE_AND_HUMIDITY: "Zu warm + feucht",
+            REASON_TEMPERATURE_AND_DRYNESS: "Zu warm + trocken",
+            REASON_NO_VENTILATION_NEEDED: "Kein Lüftungsbedarf",
+            REASON_UNKNOWN: "Unklar",
+        }[self.data.reason]
 
     def _build_reason_text(self) -> str:
         if self.data is None:
@@ -631,6 +668,7 @@ class VentilationRecommendationCoordinator(
             REASON_OUTDOOR_MORE_HUMID: "außen feuchter als innen",
             REASON_TEMPERATURE_AND_HUMIDITY: "innen zu warm und zu feucht",
             REASON_TEMPERATURE_AND_DRYNESS: "innen zu warm und zu trocken",
+            REASON_NO_VENTILATION_NEEDED: "kein Lüftungsbedarf",
             REASON_UNKNOWN: "keine eindeutige Ursache",
         }[self.data.reason]
 

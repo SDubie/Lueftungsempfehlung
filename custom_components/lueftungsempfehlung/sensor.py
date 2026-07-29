@@ -20,6 +20,7 @@ from .const import (
     ATTR_OUTDOOR_ABSOLUTE_HUMIDITY,
     ATTR_OUTDOOR_DEW_POINT,
     ATTR_REASON,
+    ATTR_REASON_SHORT,
     ATTR_REASON_DETAIL,
     ATTR_STRUCTURE_PROTECTION_ACTIVE,
     ATTR_TEMPERATURE_RECOMMENDED,
@@ -34,6 +35,7 @@ from .const import (
     REASON_HUMIDITY,
     REASON_DRYNESS,
     REASON_INDOOR_TOO_COLD,
+    REASON_NO_VENTILATION_NEEDED,
     REASON_DETAIL_CRITICAL_HUMIDITY,
     REASON_DETAIL_DEW_POINT_RISK,
     REASON_DETAIL_HUMIDITY_SPIKE,
@@ -67,7 +69,23 @@ REASON_LABELS: dict[str, str] = {
     REASON_STRUCTURE_PROTECTION_ACTIVE: "Strukturschutz aktiv",
     REASON_TEMPERATURE_AND_HUMIDITY: "Zu warm und zu feucht",
     REASON_TEMPERATURE_AND_DRYNESS: "Zu warm und zu trocken",
+    REASON_NO_VENTILATION_NEEDED: "Kein Lüftungsbedarf",
     REASON_UNKNOWN: "Kein eindeutiger Lüftungsgrund",
+}
+
+REASON_SHORT_LABELS: dict[str, str] = {
+    REASON_TEMPERATURE: "Zu warm",
+    REASON_HUMIDITY: "Zu feucht",
+    REASON_DRYNESS: "Zu trocken",
+    REASON_INDOOR_TOO_COLD: "Innen zu kalt",
+    REASON_OUTDOOR_WARMER: "Außen wärmer",
+    REASON_OUTDOOR_WARMER_AND_MORE_HUMID: "Außen wärmer + feuchter",
+    REASON_OUTDOOR_MORE_HUMID: "Außen feuchter",
+    REASON_STRUCTURE_PROTECTION_ACTIVE: "Strukturschutz",
+    REASON_TEMPERATURE_AND_HUMIDITY: "Zu warm + feucht",
+    REASON_TEMPERATURE_AND_DRYNESS: "Zu warm + trocken",
+    REASON_NO_VENTILATION_NEEDED: "Kein Lüftungsbedarf",
+    REASON_UNKNOWN: "Unklar",
 }
 
 REASON_DETAIL_LABELS: dict[str, str] = {
@@ -144,6 +162,7 @@ class VentilationRecommendationSensor(
         data = self.coordinator.data
         return {
             ATTR_REASON: REASON_LABELS.get(data.reason, data.reason),
+            ATTR_REASON_SHORT: REASON_SHORT_LABELS.get(data.reason, data.reason),
             ATTR_REASON_DETAIL: (
                 REASON_DETAIL_LABELS.get(data.reason_detail, data.reason_detail)
                 if data.reason_detail
