@@ -79,31 +79,37 @@ def _build_basic_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema
                 CONF_INDOOR_TEMPERATURE_ENTITY,
                 default=values.get(CONF_INDOOR_TEMPERATURE_ENTITY, ""),
             ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
+                selector.EntitySelectorConfig(
+                    domain="sensor", device_class="temperatur"
+                )
             ),
             vol.Required(
                 CONF_INDOOR_HUMIDITY_ENTITY,
                 default=values.get(CONF_INDOOR_HUMIDITY_ENTITY, ""),
             ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
+                selector.EntitySelectorConfig(domain="sensor", device_class="humidity")
             ),
             vol.Required(
                 CONF_OUTDOOR_TEMPERATURE_ENTITY,
                 default=values.get(CONF_OUTDOOR_TEMPERATURE_ENTITY, ""),
             ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
+                selector.EntitySelectorConfig(
+                    domain="sensor", device_class="temperatur"
+                )
             ),
             vol.Required(
                 CONF_OUTDOOR_HUMIDITY_ENTITY,
                 default=values.get(CONF_OUTDOOR_HUMIDITY_ENTITY, ""),
             ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
+                selector.EntitySelectorConfig(domain="sensor", device_class="humidity")
             ),
             vol.Optional(
                 CONF_WINDOW_ENTITY,
                 default=values.get(CONF_WINDOW_ENTITY, ""),
             ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="binary_sensor")
+                selector.EntitySelectorConfig(
+                    domain="binary_sensor", device_class=["door", "window", "opening"]
+                )
             ),
         }
     )
