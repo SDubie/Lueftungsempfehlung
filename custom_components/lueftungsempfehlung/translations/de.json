@@ -48,7 +48,7 @@
       }
     },
     "abort": {
-      "already_configured": "Diese Sensorkombination ist bereits eingerichtet."
+      "already_configured": "Diese Sensorkombination wird bereits von \"{name}\" verwendet."
     }
   },
   "options": {

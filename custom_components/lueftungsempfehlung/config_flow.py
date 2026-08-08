@@ -326,6 +326,18 @@ class LueftungsempfehlungConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._pending_data: dict[str, Any] = {}
 
+    def _find_existing_entry_by_unique_id(
+        self, unique_id: str
+    ) -> config_entries.ConfigEntry | None:
+        for entry in self._async_current_entries():
+            if entry.unique_id == unique_id:
+                return entry
+        return None
+
+    @staticmethod
+    def _entry_display_name(entry: config_entries.ConfigEntry) -> str:
+        return entry.title or entry.entry_id or DEFAULT_NAME
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
             self._pending_data.update(user_input)
@@ -357,8 +369,17 @@ class LueftungsempfehlungConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         self._pending_data.update(user_input)
-        await self.async_set_unique_id(_build_unique_id(self._pending_data))
-        self._abort_if_unique_id_configured()
+        unique_id = _build_unique_id(self._pending_data)
+        existing_entry = self._find_existing_entry_by_unique_id(unique_id)
+        if existing_entry is not None:
+            return self.async_abort(
+                reason="already_configured",
+                description_placeholders={
+                    "name": self._entry_display_name(existing_entry)
+                },
+            )
+
+        await self.async_set_unique_id(unique_id)
 
         return self.async_create_entry(
             title=self._pending_data.get(CONF_NAME, DEFAULT_NAME),
@@ -366,8 +387,17 @@ class LueftungsempfehlungConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_import(self, user_input: dict[str, Any]):
-        await self.async_set_unique_id(_build_unique_id(user_input))
-        self._abort_if_unique_id_configured()
+        unique_id = _build_unique_id(user_input)
+        existing_entry = self._find_existing_entry_by_unique_id(unique_id)
+        if existing_entry is not None:
+            return self.async_abort(
+                reason="already_configured",
+                description_placeholders={
+                    "name": self._entry_display_name(existing_entry)
+                },
+            )
+
+        await self.async_set_unique_id(unique_id)
 
         return self.async_create_entry(
             title=user_input.get(CONF_NAME, DEFAULT_NAME),

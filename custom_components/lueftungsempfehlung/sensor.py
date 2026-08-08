@@ -116,6 +116,7 @@ class VentilationRecommendationSensor(
     CoordinatorEntity[VentilationRecommendationCoordinator], SensorEntity
 ):
     _attr_has_entity_name = True
+    _attr_name = None
     entity_description = SENSOR_DESCRIPTION
 
     def __init__(
