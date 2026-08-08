@@ -80,7 +80,7 @@ def _build_basic_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema
                 default=values.get(CONF_INDOOR_TEMPERATURE_ENTITY, ""),
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(
-                    domain="sensor", device_class="temperatur"
+                    domain="sensor", device_class="temperature"
                 )
             ),
             vol.Required(
@@ -94,7 +94,7 @@ def _build_basic_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema
                 default=values.get(CONF_OUTDOOR_TEMPERATURE_ENTITY, ""),
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(
-                    domain="sensor", device_class="temperatur"
+                    domain="sensor", device_class="temperature"
                 )
             ),
             vol.Required(
