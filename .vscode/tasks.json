@@ -1,25 +1,39 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"label": "Setup: Dev Environment",
-			"type": "shell",
-			"command": "if (-not (Test-Path .\\.venv\\Scripts\\python.exe)) { python -m venv .venv }; .\\.venv\\Scripts\\python.exe -m pip install --upgrade pip; .\\.venv\\Scripts\\python.exe -m pip install -r requirements-dev.txt",
-			"problemMatcher": []
-		},
-		{
-			"label": "Tests: Coordinator Logic",
-			"type": "shell",
-			"command": "if (Test-Path .\\.venv\\Scripts\\python.exe) { .\\.venv\\Scripts\\python.exe -m pytest tests/test_coordinator_logic.py } else { python -m pytest tests/test_coordinator_logic.py }",
-			"problemMatcher": [],
-			"group": "test"
-		},
-		{
-			"label": "Tests: All",
-			"type": "shell",
-			"command": "if (Test-Path .\\.venv\\Scripts\\python.exe) { .\\.venv\\Scripts\\python.exe -m pytest tests } else { python -m pytest tests }",
-			"problemMatcher": [],
-			"group": "test"
-		}
-	]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup: Dev Environment",
+      "type": "shell",
+      "command": "if (-not (Test-Path .\\.venv\\Scripts\\python.exe)) { python -m venv .venv }; .\\.venv\\Scripts\\python.exe -m pip install --upgrade pip; .\\.venv\\Scripts\\python.exe -m pip install -r requirements-dev.txt",
+      "problemMatcher": []
+    },
+    {
+      "label": "Tests: Coordinator Logic",
+      "type": "shell",
+      "command": "if (Test-Path .\\.venv\\Scripts\\python.exe) { .\\.venv\\Scripts\\python.exe -m pytest tests/test_coordinator_logic.py } else { python -m pytest tests/test_coordinator_logic.py }",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Tests: All",
+      "type": "shell",
+      "command": "if (Test-Path .\\.venv\\Scripts\\python.exe) { .\\.venv\\Scripts\\python.exe -m pytest tests } else { python -m pytest tests }",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Quality: Pre-Push",
+      "type": "shell",
+      "command": "if (Test-Path .\\.venv\\Scripts\\python.exe) { .\\.venv\\Scripts\\ruff.exe format .; .\\.venv\\Scripts\\ruff.exe check . --fix; .\\.venv\\Scripts\\python.exe -m pytest tests } else { ruff format .; ruff check . --fix; python -m pytest tests }",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Quality: Ruff Quick",
+      "type": "shell",
+      "command": "if (Test-Path .\\.venv\\Scripts\\python.exe) { .\\.venv\\Scripts\\ruff.exe format .; .\\.venv\\Scripts\\ruff.exe check . --fix } else { ruff format .; ruff check . --fix }",
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
 }

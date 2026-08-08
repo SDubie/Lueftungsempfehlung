@@ -46,6 +46,49 @@ pytest tests/test_coordinator_logic.py
 
 If you add new behavior, please add or update tests accordingly.
 
+## Auto-formatting and linting
+
+This project uses Ruff for formatting and import sorting.
+
+Format all files:
+
+```bash
+ruff format .
+```
+
+Apply safe lint fixes:
+
+```bash
+ruff check . --fix
+```
+
+Pre-commit hooks are configured in `.pre-commit-config.yaml`.
+Install them once per clone:
+
+```bash
+pre-commit install
+```
+
+Run hooks manually for all files:
+
+```bash
+pre-commit run --all-files
+```
+
+Install both git hook types for this repository:
+
+```bash
+pre-commit install --hook-type pre-commit --hook-type pre-push
+```
+
+Run the combined pre-push quality check (format, lint fix, tests):
+
+- In VS Code, run task: `Quality: Pre-Push`
+
+Run a quick local formatting and lint-fix pass without tests:
+
+- In VS Code, run task: `Quality: Ruff Quick`
+
 ## Pull requests
 
 Please include:
