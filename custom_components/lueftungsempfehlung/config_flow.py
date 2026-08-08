@@ -329,7 +329,12 @@ class LueftungsempfehlungConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _find_existing_entry_by_unique_id(
         self, unique_id: str
     ) -> config_entries.ConfigEntry | None:
-        for entry in self._async_current_entries():
+        try:
+            entries = self._async_current_entries()
+        except AttributeError:
+            return None
+
+        for entry in entries:
             if entry.unique_id == unique_id:
                 return entry
         return None
@@ -341,6 +346,18 @@ class LueftungsempfehlungConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
             self._pending_data.update(user_input)
+            unique_id = _build_unique_id(self._pending_data)
+            existing_entry = self._find_existing_entry_by_unique_id(unique_id)
+            if existing_entry is not None:
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=_build_basic_schema(self._pending_data),
+                    errors={"base": "already_configured"},
+                    description_placeholders={
+                        "name": self._entry_display_name(existing_entry)
+                    },
+                )
+
             return self.async_show_form(
                 step_id="notifications",
                 data_schema=_build_notification_schema(self._pending_data),

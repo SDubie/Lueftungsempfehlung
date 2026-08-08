@@ -350,12 +350,6 @@ async def test_config_flow_runs_through_three_steps() -> None:
 @pytest.mark.asyncio
 async def test_config_flow_duplicate_combination_shows_existing_sensor_name() -> None:
     flow = LueftungsempfehlungConfigFlow()
-    flow._pending_data = {
-        CONF_INDOOR_TEMPERATURE_ENTITY: "sensor.indoor_temp",
-        CONF_INDOOR_HUMIDITY_ENTITY: "sensor.indoor_humidity",
-        CONF_OUTDOOR_TEMPERATURE_ENTITY: "sensor.outdoor_temp",
-        CONF_OUTDOOR_HUMIDITY_ENTITY: "sensor.outdoor_humidity",
-    }
     flow._async_current_entries = lambda: [
         SimpleNamespace(
             unique_id=(
@@ -367,10 +361,20 @@ async def test_config_flow_duplicate_combination_shows_existing_sensor_name() ->
         )
     ]
 
-    result = await flow.async_step_advanced({})
+    result = await flow.async_step_user(
+        {
+            CONF_NAME: "Duplikat-Test",
+            CONF_INDOOR_TEMPERATURE_ENTITY: "sensor.indoor_temp",
+            CONF_INDOOR_HUMIDITY_ENTITY: "sensor.indoor_humidity",
+            CONF_OUTDOOR_TEMPERATURE_ENTITY: "sensor.outdoor_temp",
+            CONF_OUTDOOR_HUMIDITY_ENTITY: "sensor.outdoor_humidity",
+            CONF_WINDOW_ENTITY: "",
+        }
+    )
 
-    assert result["type"] == data_entry_flow.FlowResultType.ABORT
-    assert result["reason"] == "already_configured"
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "already_configured"}
     assert result["description_placeholders"] == {"name": "Lüftungsempfehlung Bad"}
 
 
