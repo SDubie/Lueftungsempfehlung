@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timedelta
 import logging
 import math
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
@@ -23,15 +23,15 @@ from .const import (
     CONF_MAX_INDOOR_DEW_POINT_SPREAD,
     CONF_MAX_INDOOR_HUMIDITY,
     CONF_MAX_INDOOR_TEMPERATURE,
-    CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
-    CONF_MIN_INDOOR_TEMPERATURE,
     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
     CONF_MIN_INDOOR_HUMIDITY,
+    CONF_MIN_INDOOR_TEMPERATURE,
+    CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
     CONF_MIN_TEMPERATURE_DELTA,
-    CONF_NOTIFY_DEVICES,
     CONF_NOTIFICATION_SILENCE_END,
     CONF_NOTIFICATION_SILENCE_ENTITY,
     CONF_NOTIFICATION_SILENCE_START,
+    CONF_NOTIFY_DEVICES,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_REMINDER_INTERVAL_MINUTES,
@@ -40,36 +40,35 @@ from .const import (
     CONF_TEMPERATURE_HYSTERESIS,
     CONF_UPDATE_INTERVAL_MINUTES,
     CONF_WINDOW_ENTITY,
-    DEFAULT_HUMIDITY_HYSTERESIS,
     DEFAULT_CRITICAL_INDOOR_HUMIDITY,
+    DEFAULT_HUMIDITY_HYSTERESIS,
     DEFAULT_HUMIDITY_SPIKE_THRESHOLD,
-    DEFAULT_MAX_INDOOR_HUMIDITY,
     DEFAULT_MAX_INDOOR_DEW_POINT_SPREAD,
+    DEFAULT_MAX_INDOOR_HUMIDITY,
     DEFAULT_MAX_INDOOR_TEMPERATURE,
-    DEFAULT_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
-    DEFAULT_MIN_INDOOR_TEMPERATURE,
-    DOMAIN,
     DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
     DEFAULT_MIN_INDOOR_HUMIDITY,
+    DEFAULT_MIN_INDOOR_TEMPERATURE,
+    DEFAULT_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
     DEFAULT_MIN_TEMPERATURE_DELTA,
     DEFAULT_NOTIFICATION_SILENCE_END,
-    DEFAULT_NOTIFICATION_SILENCE_ENTITY,
     DEFAULT_NOTIFICATION_SILENCE_START,
     DEFAULT_REMINDER_INTERVAL_MINUTES,
     DEFAULT_REMINDER_MAX_COUNT,
     DEFAULT_REQUIRE_OUTSIDE_COOLER,
     DEFAULT_TEMPERATURE_HYSTERESIS,
-    REASON_DRYNESS,
-    REASON_HUMIDITY,
-    REASON_INDOOR_TOO_COLD,
-    REASON_NO_VENTILATION_NEEDED,
+    DOMAIN,
     REASON_DETAIL_CRITICAL_HUMIDITY,
     REASON_DETAIL_DEW_POINT_RISK,
     REASON_DETAIL_HUMIDITY_SPIKE,
     REASON_DETAIL_MIN_VENTILATION_DURATION,
+    REASON_DRYNESS,
+    REASON_HUMIDITY,
+    REASON_INDOOR_TOO_COLD,
+    REASON_NO_VENTILATION_NEEDED,
+    REASON_OUTDOOR_MORE_HUMID,
     REASON_OUTDOOR_WARMER,
     REASON_OUTDOOR_WARMER_AND_MORE_HUMID,
-    REASON_OUTDOOR_MORE_HUMID,
     REASON_STRUCTURE_PROTECTION_ACTIVE,
     REASON_TEMPERATURE,
     REASON_TEMPERATURE_AND_DRYNESS,
@@ -126,7 +125,9 @@ class VentilationRecommendationCoordinator(
             ),
         )
 
-    def _get_config_value(self, key: str, default: bool | float | int | str) -> bool | float | int | str:
+    def _get_config_value(
+        self, key: str, default: bool | float | int | str
+    ) -> bool | float | int | str:
         return self.entry.options.get(key, self.entry.data.get(key, default))
 
     def _get_required_entity_id(self, key: str) -> str:
@@ -197,7 +198,9 @@ class VentilationRecommendationCoordinator(
             return
 
         await self._async_dispatch_notifications(
-            title=self._build_notification_title(current_recommendation, is_reminder=True),
+            title=self._build_notification_title(
+                current_recommendation, is_reminder=True
+            ),
             message=self._build_notification_message(is_reminder=True),
             device_ids=device_ids,
         )
@@ -205,7 +208,10 @@ class VentilationRecommendationCoordinator(
         self._reminder_count += 1
 
     def _is_notification_suppressed(self) -> bool:
-        return self._is_suppressed_by_time_window() or self._is_suppressed_by_external_entity()
+        return (
+            self._is_suppressed_by_time_window()
+            or self._is_suppressed_by_external_entity()
+        )
 
     def _is_suppressed_by_time_window(self) -> bool:
         start_raw = str(
@@ -344,9 +350,15 @@ class VentilationRecommendationCoordinator(
             outdoor_humidity,
         )
         absolute_humidity_delta = indoor_absolute_humidity - outdoor_absolute_humidity
-        reverse_absolute_humidity_delta = outdoor_absolute_humidity - indoor_absolute_humidity
-        indoor_dew_point = self._calculate_dew_point(indoor_temperature, indoor_humidity)
-        outdoor_dew_point = self._calculate_dew_point(outdoor_temperature, outdoor_humidity)
+        reverse_absolute_humidity_delta = (
+            outdoor_absolute_humidity - indoor_absolute_humidity
+        )
+        indoor_dew_point = self._calculate_dew_point(
+            indoor_temperature, indoor_humidity
+        )
+        outdoor_dew_point = self._calculate_dew_point(
+            outdoor_temperature, outdoor_humidity
+        )
 
         min_delta = float(
             self._get_config_value(
@@ -427,9 +439,14 @@ class VentilationRecommendationCoordinator(
             )
         )
 
-        previous_active = self.data is not None and self.data.recommendation == STATE_LUEFTEN_EMPFOHLEN
+        previous_active = (
+            self.data is not None
+            and self.data.recommendation == STATE_LUEFTEN_EMPFOHLEN
+        )
 
-        humidity_delta_threshold = min_delta - humidity_hysteresis if previous_active else min_delta
+        humidity_delta_threshold = (
+            min_delta - humidity_hysteresis if previous_active else min_delta
+        )
         temperature_delta_threshold = (
             min_temperature_delta - temperature_hysteresis
             if previous_active
@@ -449,7 +466,9 @@ class VentilationRecommendationCoordinator(
         )
         humidity_recommended = too_humid or too_dry
 
-        previous_indoor_humidity = self.data.indoor_humidity if self.data is not None else None
+        previous_indoor_humidity = (
+            self.data.indoor_humidity if self.data is not None else None
+        )
         humidity_spike_detected = (
             previous_indoor_humidity is not None
             and indoor_humidity - previous_indoor_humidity >= humidity_spike_threshold
@@ -458,10 +477,7 @@ class VentilationRecommendationCoordinator(
         indoor_dew_point_spread = indoor_temperature - indoor_dew_point
 
         structure_reason_detail: str | None = None
-        if (
-            indoor_humidity >= critical_indoor_humidity
-            and dehumidification_possible
-        ):
+        if indoor_humidity >= critical_indoor_humidity and dehumidification_possible:
             structure_reason_detail = REASON_DETAIL_CRITICAL_HUMIDITY
         elif (
             indoor_dew_point_spread <= max_indoor_dew_point_spread
@@ -479,7 +495,9 @@ class VentilationRecommendationCoordinator(
         outside_more_humid = outdoor_absolute_humidity > indoor_absolute_humidity
         humidity_reduction_possible = dehumidification_possible
         outdoor_warmer_and_more_humid = outside_warmer and outside_more_humid
-        outdoor_warmer_without_humidity_benefit = outside_warmer and not humidity_reduction_possible
+        outdoor_warmer_without_humidity_benefit = (
+            outside_warmer and not humidity_reduction_possible
+        )
         indoor_too_cold_for_more_cooling = (
             indoor_temperature <= min_indoor_temperature and outside_cooler
         )
@@ -647,7 +665,9 @@ class VentilationRecommendationCoordinator(
 
         return services
 
-    def _build_notification_title(self, recommendation: str, is_reminder: bool = False) -> str:
+    def _build_notification_title(
+        self, recommendation: str, is_reminder: bool = False
+    ) -> str:
         name = self.entry.title or "Lüftungsempfehlung"
 
         if is_reminder:
@@ -752,7 +772,9 @@ class VentilationRecommendationCoordinator(
         }[reason_detail]
 
     @staticmethod
-    def _calculate_absolute_humidity(temperature_c: float, humidity_percent: float) -> float:
+    def _calculate_absolute_humidity(
+        temperature_c: float, humidity_percent: float
+    ) -> float:
         saturation_vapor_pressure = 6.112 * math.exp(
             (17.67 * temperature_c) / (temperature_c + 243.5)
         )

@@ -4,29 +4,28 @@ from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_CRITICAL_INDOOR_HUMIDITY,
     CONF_HUMIDITY_HYSTERESIS,
     CONF_HUMIDITY_SPIKE_THRESHOLD,
-    CONF_CRITICAL_INDOOR_HUMIDITY,
     CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_INDOOR_TEMPERATURE_ENTITY,
     CONF_MAX_INDOOR_DEW_POINT_SPREAD,
     CONF_MAX_INDOOR_HUMIDITY,
     CONF_MAX_INDOOR_TEMPERATURE,
-    CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
-    CONF_MIN_INDOOR_TEMPERATURE,
     CONF_MIN_ABSOLUTE_HUMIDITY_DELTA,
     CONF_MIN_INDOOR_HUMIDITY,
+    CONF_MIN_INDOOR_TEMPERATURE,
+    CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
     CONF_MIN_TEMPERATURE_DELTA,
     CONF_NAME,
-    CONF_NOTIFY_DEVICES,
     CONF_NOTIFICATION_SILENCE_END,
     CONF_NOTIFICATION_SILENCE_ENTITY,
     CONF_NOTIFICATION_SILENCE_START,
+    CONF_NOTIFY_DEVICES,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_REMINDER_INTERVAL_MINUTES,
@@ -35,16 +34,16 @@ from .const import (
     CONF_TEMPERATURE_HYSTERESIS,
     CONF_UPDATE_INTERVAL_MINUTES,
     CONF_WINDOW_ENTITY,
+    DEFAULT_CRITICAL_INDOOR_HUMIDITY,
     DEFAULT_HUMIDITY_HYSTERESIS,
     DEFAULT_HUMIDITY_SPIKE_THRESHOLD,
-    DEFAULT_CRITICAL_INDOOR_HUMIDITY,
-    DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
-    DEFAULT_MAX_INDOOR_HUMIDITY,
     DEFAULT_MAX_INDOOR_DEW_POINT_SPREAD,
+    DEFAULT_MAX_INDOOR_HUMIDITY,
     DEFAULT_MAX_INDOOR_TEMPERATURE,
-    DEFAULT_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
-    DEFAULT_MIN_INDOOR_TEMPERATURE,
+    DEFAULT_MIN_ABSOLUTE_HUMIDITY_DELTA,
     DEFAULT_MIN_INDOOR_HUMIDITY,
+    DEFAULT_MIN_INDOOR_TEMPERATURE,
+    DEFAULT_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
     DEFAULT_MIN_TEMPERATURE_DELTA,
     DEFAULT_NAME,
     DEFAULT_NOTIFICATION_SILENCE_END,
@@ -285,7 +284,9 @@ def _build_advanced_schema(defaults: Mapping[str, Any] | None = None) -> vol.Sch
                     DEFAULT_UPDATE_INTERVAL_MINUTES,
                 ),
             ): selector.NumberSelector(
-                selector.NumberSelectorConfig(min=1, max=60, step=1, mode=selector.NumberSelectorMode.BOX)
+                selector.NumberSelectorConfig(
+                    min=1, max=60, step=1, mode=selector.NumberSelectorMode.BOX
+                )
             ),
             vol.Optional(
                 CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
@@ -375,7 +376,10 @@ class LueftungsempfehlungConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class LueftungsempfehlungOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._config_entry = config_entry
-        self._defaults: dict[str, Any] = {**self._config_entry.data, **self._config_entry.options}
+        self._defaults: dict[str, Any] = {
+            **self._config_entry.data,
+            **self._config_entry.options,
+        }
         self._pending_options: dict[str, Any] = {}
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
@@ -387,7 +391,9 @@ class LueftungsempfehlungOptionsFlow(config_entries.OptionsFlow):
                 data_schema=_build_notification_schema(defaults),
             )
 
-        return self.async_show_form(step_id="init", data_schema=_build_basic_schema(self._defaults))
+        return self.async_show_form(
+            step_id="init", data_schema=_build_basic_schema(self._defaults)
+        )
 
     async def async_step_notifications(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:

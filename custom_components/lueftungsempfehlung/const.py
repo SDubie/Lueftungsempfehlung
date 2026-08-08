@@ -40,7 +40,7 @@ CONF_MIN_INDOOR_TEMPERATURE = "min_indoor_temperature"
 CONF_MAX_INDOOR_DEW_POINT_SPREAD = "max_indoor_dew_point_spread"
 CONF_HUMIDITY_SPIKE_THRESHOLD = "humidity_spike_threshold"
 CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES = (
-	"min_structure_protection_ventilation_minutes"
+    "min_structure_protection_ventilation_minutes"
 )
 CONF_MIN_TEMPERATURE_DELTA = "min_temperature_delta"
 CONF_HUMIDITY_HYSTERESIS = "humidity_hysteresis"

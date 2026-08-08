@@ -4,6 +4,7 @@ from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
+from homeassistant import data_entry_flow
 
 from custom_components.lueftungsempfehlung.config_flow import (
     LueftungsempfehlungConfigFlow,
@@ -19,16 +20,16 @@ from custom_components.lueftungsempfehlung.const import (
     CONF_MAX_INDOOR_DEW_POINT_SPREAD,
     CONF_MAX_INDOOR_HUMIDITY,
     CONF_MAX_INDOOR_TEMPERATURE,
+    CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
+    CONF_NAME,
     CONF_NOTIFICATION_SILENCE_END,
     CONF_NOTIFICATION_SILENCE_ENTITY,
     CONF_NOTIFICATION_SILENCE_START,
-    CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES,
     CONF_NOTIFY_DEVICES,
     CONF_OUTDOOR_HUMIDITY_ENTITY,
     CONF_OUTDOOR_TEMPERATURE_ENTITY,
     CONF_REMINDER_INTERVAL_MINUTES,
     CONF_REMINDER_MAX_COUNT,
-    CONF_NAME,
     CONF_WINDOW_ENTITY,
     REASON_HUMIDITY,
     REASON_STRUCTURE_PROTECTION_ACTIVE,
@@ -38,7 +39,6 @@ from custom_components.lueftungsempfehlung.const import (
     STATE_LUEFTEN_EMPFOHLEN,
     STATE_LUEFTEN_NICHT_EMPFOHLEN,
 )
-from homeassistant import data_entry_flow
 from custom_components.lueftungsempfehlung.coordinator import (
     VentilationRecommendationCoordinator,
     VentilationRecommendationData,
@@ -67,13 +67,17 @@ def _base_data(recommendation: str, reason: str) -> VentilationRecommendationDat
     )
 
 
-def _sensor_with_data(data: VentilationRecommendationData) -> VentilationRecommendationSensor:
+def _sensor_with_data(
+    data: VentilationRecommendationData,
+) -> VentilationRecommendationSensor:
     sensor = object.__new__(VentilationRecommendationSensor)
     sensor.coordinator = SimpleNamespace(data=data)
     return sensor
 
 
-def _coordinator_for_notifications(data: VentilationRecommendationData) -> VentilationRecommendationCoordinator:
+def _coordinator_for_notifications(
+    data: VentilationRecommendationData,
+) -> VentilationRecommendationCoordinator:
     coordinator = object.__new__(VentilationRecommendationCoordinator)
     coordinator.entry = SimpleNamespace(data={}, options={}, title="Test")
     coordinator.data = data
@@ -88,7 +92,13 @@ def _coordinator_for_notifications(data: VentilationRecommendationData) -> Venti
         def has_service(domain: str, service: str) -> bool:
             return domain == "notify" and service == "mobile_app_test_device"
 
-        async def async_call(self, domain: str, service: str, payload: dict[str, str], blocking: bool = False) -> None:
+        async def async_call(
+            self,
+            domain: str,
+            service: str,
+            payload: dict[str, str],
+            blocking: bool = False,
+        ) -> None:
             calls.append({"domain": domain, "service": service, **payload})
 
     coordinator.hass = SimpleNamespace(
@@ -112,7 +122,9 @@ def test_sensor_icon_for_temperature_reason() -> None:
 
 
 def test_sensor_icon_for_structure_protection_reason() -> None:
-    sensor_data = _base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_STRUCTURE_PROTECTION_ACTIVE)
+    sensor_data = _base_data(
+        STATE_LUEFTEN_EMPFOHLEN, REASON_STRUCTURE_PROTECTION_ACTIVE
+    )
     sensor_data = replace(sensor_data, structure_protection_active=True)
     sensor = _sensor_with_data(sensor_data)
     assert sensor.icon == "mdi:water-percent-alert"
@@ -246,7 +258,10 @@ def test_schema_applies_new_structure_protection_defaults() -> None:
     assert validated[CONF_MIN_STRUCTURE_PROTECTION_VENTILATION_MINUTES] == 15
     assert validated[CONF_NOTIFICATION_SILENCE_START] == "22:00"
     assert validated[CONF_NOTIFICATION_SILENCE_END] == "07:00"
-    assert validated[CONF_NOTIFICATION_SILENCE_ENTITY] == "schedule.notification_quiet_hours"
+    assert (
+        validated[CONF_NOTIFICATION_SILENCE_ENTITY]
+        == "schedule.notification_quiet_hours"
+    )
 
 
 @pytest.mark.asyncio
@@ -258,7 +273,7 @@ async def test_options_flow_prefers_options_over_entry_data() -> None:
                 CONF_INDOOR_HUMIDITY_ENTITY: "sensor.old_indoor_humidity",
                 CONF_OUTDOOR_TEMPERATURE_ENTITY: "sensor.old_outdoor_temp",
                 CONF_OUTDOOR_HUMIDITY_ENTITY: "sensor.old_outdoor_humidity",
-                    CONF_WINDOW_ENTITY: "binary_sensor.old_window",
+                CONF_WINDOW_ENTITY: "binary_sensor.old_window",
                 CONF_MAX_INDOOR_HUMIDITY: 60.0,
                 CONF_MAX_INDOOR_TEMPERATURE: 24.0,
             },

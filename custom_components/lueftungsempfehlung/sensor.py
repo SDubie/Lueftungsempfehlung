@@ -5,6 +5,7 @@ from typing import Any
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
 try:
     from homeassistant.helpers.device_registry import DeviceInfo
 except ImportError:
@@ -20,36 +21,35 @@ from .const import (
     ATTR_OUTDOOR_ABSOLUTE_HUMIDITY,
     ATTR_OUTDOOR_DEW_POINT,
     ATTR_REASON,
-    ATTR_REASON_SHORT,
     ATTR_REASON_DETAIL,
+    ATTR_REASON_SHORT,
     ATTR_STRUCTURE_PROTECTION_ACTIVE,
     ATTR_TEMPERATURE_RECOMMENDED,
     ATTR_WINDOW_OPEN,
     DEFAULT_NAME,
     DOMAIN,
-    STATE_FENSTER_WIEDER_SCHLIESSEN,
-    STATE_LUEFTEN_EMPFOHLEN,
-    STATE_LUEFTEN_NICHT_EMPFOHLEN,
-    STATE_LUEFTEN_NICHT_NOETIG,
-    REASON_TEMPERATURE,
-    REASON_HUMIDITY,
-    REASON_DRYNESS,
-    REASON_INDOOR_TOO_COLD,
-    REASON_NO_VENTILATION_NEEDED,
     REASON_DETAIL_CRITICAL_HUMIDITY,
     REASON_DETAIL_DEW_POINT_RISK,
     REASON_DETAIL_HUMIDITY_SPIKE,
     REASON_DETAIL_MIN_VENTILATION_DURATION,
+    REASON_DRYNESS,
+    REASON_HUMIDITY,
+    REASON_INDOOR_TOO_COLD,
+    REASON_NO_VENTILATION_NEEDED,
+    REASON_OUTDOOR_MORE_HUMID,
     REASON_OUTDOOR_WARMER,
     REASON_OUTDOOR_WARMER_AND_MORE_HUMID,
-    REASON_OUTDOOR_MORE_HUMID,
     REASON_STRUCTURE_PROTECTION_ACTIVE,
-    REASON_TEMPERATURE_AND_HUMIDITY,
+    REASON_TEMPERATURE,
     REASON_TEMPERATURE_AND_DRYNESS,
+    REASON_TEMPERATURE_AND_HUMIDITY,
     REASON_UNKNOWN,
+    STATE_FENSTER_WIEDER_SCHLIESSEN,
+    STATE_LUEFTEN_EMPFOHLEN,
+    STATE_LUEFTEN_NICHT_EMPFOHLEN,
+    STATE_LUEFTEN_NICHT_NOETIG,
 )
 from .coordinator import VentilationRecommendationCoordinator
-
 
 STATE_LABELS: dict[str, str] = {
     STATE_LUEFTEN_NICHT_NOETIG: "Lüften nicht nötig",
@@ -106,7 +106,9 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: VentilationRecommendationCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: VentilationRecommendationCoordinator = hass.data[DOMAIN][
+        entry.entry_id
+    ]
     async_add_entities([VentilationRecommendationSensor(coordinator, entry)])
 
 

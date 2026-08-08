@@ -5,7 +5,6 @@ from datetime import timedelta
 from types import SimpleNamespace
 
 import pytest
-
 from homeassistant.util import dt as dt_util
 
 from custom_components.lueftungsempfehlung.const import (
@@ -26,7 +25,6 @@ from custom_components.lueftungsempfehlung.const import (
     REASON_DETAIL_MIN_VENTILATION_DURATION,
     REASON_NO_VENTILATION_NEEDED,
     REASON_OUTDOOR_MORE_HUMID,
-    REASON_OUTDOOR_WARMER,
     REASON_OUTDOOR_WARMER_AND_MORE_HUMID,
     REASON_STRUCTURE_PROTECTION_ACTIVE,
     STATE_FENSTER_WIEDER_SCHLIESSEN,
@@ -47,7 +45,9 @@ class _FakeState:
 
 class _FakeStates:
     def __init__(self, values: dict[str, float | int | str]) -> None:
-        self._values = {entity_id: _FakeState(str(value)) for entity_id, value in values.items()}
+        self._values = {
+            entity_id: _FakeState(str(value)) for entity_id, value in values.items()
+        }
 
     def get(self, entity_id: str):
         return self._values.get(entity_id)
@@ -165,7 +165,9 @@ async def test_close_window_sets_explicit_no_ventilation_reason() -> None:
 
 
 @pytest.mark.asyncio
-async def test_recommended_when_outdoor_relative_humidity_is_higher_but_absolute_humidity_is_lower() -> None:
+async def test_recommended_when_outdoor_relative_humidity_is_higher_but_absolute_humidity_is_lower() -> (
+    None
+):
     options = _default_options()
     options[CONF_MAX_INDOOR_HUMIDITY] = 55.0
 
@@ -185,7 +187,9 @@ async def test_recommended_when_outdoor_relative_humidity_is_higher_but_absolute
 
 
 @pytest.mark.asyncio
-async def test_recommended_when_outdoor_warmer_but_humidity_reduction_possible() -> None:
+async def test_recommended_when_outdoor_warmer_but_humidity_reduction_possible() -> (
+    None
+):
     coordinator = _build_coordinator(
         states={
             "sensor.indoor_temp": 24.0,
@@ -346,7 +350,9 @@ async def test_min_structure_ventilation_duration_holds_recommendation() -> None
         options=options,
         previous_data=previous,
     )
-    coordinator._structure_protection_started_at = dt_util.utcnow() - timedelta(minutes=5)
+    coordinator._structure_protection_started_at = dt_util.utcnow() - timedelta(
+        minutes=5
+    )
 
     result = await coordinator._async_update_data()
 

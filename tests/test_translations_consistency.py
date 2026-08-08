@@ -10,9 +10,15 @@ def _load_json(path: Path) -> dict:
 
 def test_translation_keys_match_strings_definition() -> None:
     root = Path(__file__).resolve().parents[1]
-    strings = _load_json(root / "custom_components" / "lueftungsempfehlung" / "strings.json")
-    de = _load_json(root / "custom_components" / "lueftungsempfehlung" / "translations" / "de.json")
-    en = _load_json(root / "custom_components" / "lueftungsempfehlung" / "translations" / "en.json")
+    strings = _load_json(
+        root / "custom_components" / "lueftungsempfehlung" / "strings.json"
+    )
+    de = _load_json(
+        root / "custom_components" / "lueftungsempfehlung" / "translations" / "de.json"
+    )
+    en = _load_json(
+        root / "custom_components" / "lueftungsempfehlung" / "translations" / "en.json"
+    )
 
     sections = [
         ("config", "step", "user", "data"),
