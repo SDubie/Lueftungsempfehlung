@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 from homeassistant import data_entry_flow
@@ -111,6 +112,12 @@ def _coordinator_for_notifications(
     return coordinator
 
 
+def test_sensor_entity_name_uses_main_entity_pattern() -> None:
+    sensor = object.__new__(VentilationRecommendationSensor)
+    assert sensor._attr_has_entity_name is True
+    assert sensor._attr_name is None
+
+
 def test_sensor_icon_for_humidity_reason() -> None:
     sensor = _sensor_with_data(_base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_HUMIDITY))
     assert sensor.icon == "mdi:water-percent-alert"
@@ -151,6 +158,48 @@ async def test_notification_sent_when_recommendation_changes_to_ventilate() -> N
 
     assert len(coordinator._calls) == 1
     assert coordinator._calls[0]["title"] == "Lüften empfohlen: Test"
+
+
+@pytest.mark.asyncio
+async def test_notification_skipped_when_notify_device_is_not_home() -> None:
+    coordinator = _coordinator_for_notifications(
+        _base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_HUMIDITY)
+    )
+    coordinator.entry.options = {CONF_NOTIFY_DEVICES: ["device-1"]}
+    coordinator.hass = SimpleNamespace(
+        services=coordinator.hass.services,
+        states=SimpleNamespace(
+            get=lambda entity_id: (
+                SimpleNamespace(state="not_home")
+                if entity_id == "device_tracker.test_phone"
+                else None
+            )
+        ),
+    )
+
+    with (
+        patch(
+            "custom_components.lueftungsempfehlung.coordinator.dr.async_get",
+            return_value=SimpleNamespace(
+                async_get=lambda _: SimpleNamespace(name="Test Phone")
+            ),
+        ),
+        patch(
+            "custom_components.lueftungsempfehlung.coordinator.er.async_get",
+            return_value=SimpleNamespace(),
+        ),
+        patch(
+            "custom_components.lueftungsempfehlung.coordinator.er.async_entries_for_device",
+            return_value=[
+                SimpleNamespace(
+                    domain="device_tracker", entity_id="device_tracker.test_phone"
+                )
+            ],
+        ),
+    ):
+        await coordinator.async_send_notification_if_needed()
+
+    assert coordinator._calls == []
 
 
 @pytest.mark.asyncio

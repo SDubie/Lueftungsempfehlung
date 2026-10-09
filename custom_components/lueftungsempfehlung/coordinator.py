@@ -10,6 +10,7 @@ from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
@@ -268,6 +269,37 @@ class VentilationRecommendationCoordinator(
 
         return str(state.state).lower() in {"on", "open", "home", "active", "true"}
 
+    def _is_notify_device_at_home(self, device_id: str) -> bool:
+        try:
+            device_registry = dr.async_get(self.hass)
+            device = device_registry.async_get(device_id)
+            if device is None:
+                return True
+
+            entity_registry = er.async_get(self.hass)
+            entity_entries = er.async_entries_for_device(
+                entity_registry,
+                device_id,
+                include_disabled_entities=True,
+            )
+        except (AttributeError, KeyError, TypeError):
+            return True
+
+        for entity_entry in entity_entries:
+            if entity_entry.domain != "device_tracker":
+                continue
+
+            state = self.hass.states.get(entity_entry.entity_id)
+            if state is None:
+                continue
+
+            state_value = str(state.state).lower()
+            if state_value == "home":
+                return True
+            return False
+
+        return True
+
     async def _async_dispatch_notifications(
         self,
         *,
@@ -275,21 +307,25 @@ class VentilationRecommendationCoordinator(
         message: str,
         device_ids: list[str],
     ) -> None:
-        for service_name in self._resolve_notify_services(device_ids):
-            if not self.hass.services.has_service("notify", service_name):
-                _LOGGER.warning(
-                    "Notify service notify.%s for integration %s not found",
-                    service_name,
-                    self.entry.title,
-                )
+        for device_id in device_ids:
+            if not self._is_notify_device_at_home(device_id):
                 continue
 
-            await self.hass.services.async_call(
-                "notify",
-                service_name,
-                {"title": title, "message": message},
-                blocking=False,
-            )
+            for service_name in self._resolve_notify_services([device_id]):
+                if not self.hass.services.has_service("notify", service_name):
+                    _LOGGER.warning(
+                        "Notify service notify.%s for integration %s not found",
+                        service_name,
+                        self.entry.title,
+                    )
+                    continue
+
+                await self.hass.services.async_call(
+                    "notify",
+                    service_name,
+                    {"title": title, "message": message},
+                    blocking=False,
+                )
 
     def _should_send_reminder(self, now) -> bool:
         reminder_interval = int(
