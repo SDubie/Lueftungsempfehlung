@@ -145,13 +145,15 @@ class VentilationRecommendationSensor(
 
         if self.coordinator.data.reason in {
             REASON_HUMIDITY,
+            REASON_DRYNESS,
             REASON_TEMPERATURE_AND_HUMIDITY,
+            REASON_TEMPERATURE_AND_DRYNESS,
+            REASON_STRUCTURE_PROTECTION_ACTIVE,
         }:
             return "mdi:water-percent-alert"
 
         if self.coordinator.data.reason in {
             REASON_TEMPERATURE,
-            REASON_TEMPERATURE_AND_DRYNESS,
         }:
             return "mdi:thermometer-alert"
 

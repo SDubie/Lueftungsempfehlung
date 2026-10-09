@@ -735,7 +735,10 @@ class VentilationRecommendationCoordinator(
 
         humidity_reasons = {
             REASON_HUMIDITY,
+            REASON_DRYNESS,
             REASON_TEMPERATURE_AND_HUMIDITY,
+            REASON_TEMPERATURE_AND_DRYNESS,
+            REASON_STRUCTURE_PROTECTION_ACTIVE,
         }
         humidity_text = (
             f"Innen {self.data.indoor_absolute_humidity:.1f} g/m³, "
