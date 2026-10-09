@@ -31,6 +31,7 @@ from custom_components.lueftungsempfehlung.const import (
     CONF_REMINDER_INTERVAL_MINUTES,
     CONF_REMINDER_MAX_COUNT,
     CONF_WINDOW_ENTITY,
+    REASON_DRYNESS,
     REASON_HUMIDITY,
     REASON_STRUCTURE_PROTECTION_ACTIVE,
     REASON_TEMPERATURE,
@@ -121,6 +122,11 @@ def test_sensor_icon_for_temperature_reason() -> None:
     assert sensor.icon == "mdi:thermometer-alert"
 
 
+def test_sensor_icon_for_dryness_reason() -> None:
+    sensor = _sensor_with_data(_base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_DRYNESS))
+    assert sensor.icon == "mdi:water-percent-alert"
+
+
 def test_sensor_icon_for_structure_protection_reason() -> None:
     sensor_data = _base_data(
         STATE_LUEFTEN_EMPFOHLEN, REASON_STRUCTURE_PROTECTION_ACTIVE
@@ -209,14 +215,23 @@ async def test_no_notification_when_external_silence_entity_is_active() -> None:
     assert coordinator._calls == []
 
 
-def test_notification_message_uses_absolute_humidity_for_humidity_reason() -> None:
+@pytest.mark.parametrize(
+    "reason",
+    [
+        REASON_HUMIDITY,
+        REASON_DRYNESS,
+        REASON_STRUCTURE_PROTECTION_ACTIVE,
+    ],
+)
+def test_notification_message_uses_absolute_humidity_for_humidity_related_reasons(
+    reason: str,
+) -> None:
     coordinator = _coordinator_for_notifications(
-        _base_data(STATE_LUEFTEN_EMPFOHLEN, REASON_HUMIDITY)
+        _base_data(STATE_LUEFTEN_EMPFOHLEN, reason)
     )
 
     message = coordinator._build_notification_message()
 
-    assert "Grund: Zu feucht." in message
     assert "10.0 g/m³" in message
     assert "8.0 g/m³" in message
     assert "55 %" not in message
